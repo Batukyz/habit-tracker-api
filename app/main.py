@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
-app = FastAPI()
+app = FastAPI(title="Habit Tracker API")
 
-@app.get("/")
-def root():
-    return {"message": "Habit Tracker API çalışıyor!"}
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
