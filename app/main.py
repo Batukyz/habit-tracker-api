@@ -82,3 +82,19 @@ def list_habit_logs(habit_id: int, db: Session = Depends(get_db)):
         .order_by(models.HabitLog.completed_on)
         .all()
     )
+
+
+@app.delete("/habits/{habit_id}/logs/{log_id}", status_code=204)
+def delete_habit_log(habit_id: int, log_id: int, db: Session = Depends(get_db)):
+    habit = db.query(models.Habit).filter(models.Habit.id == habit_id).first()
+    if habit is None:
+        raise HTTPException(status_code=404, detail="Habit not found")
+    log = (
+        db.query(models.HabitLog)
+        .filter(models.HabitLog.id == log_id, models.HabitLog.habit_id == habit_id)
+        .first()
+    )
+    if log is None:
+        raise HTTPException(status_code=404, detail="Habit log not found")
+    db.delete(log)
+    db.commit()
