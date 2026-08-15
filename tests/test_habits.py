@@ -65,3 +65,42 @@ def test_delete_habit(client):
 def test_delete_habit_not_found(client):
     response = client.delete("/habits/999")
     assert response.status_code == 404
+
+
+def test_create_habit_log(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+
+    response = client.post(f"/habits/{habit['id']}/logs", json={})
+    assert response.status_code == 201
+    body = response.json()
+    assert body["habit_id"] == habit["id"]
+    assert "completed_on" in body
+
+
+def test_create_habit_log_with_date(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+
+    response = client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-01-01"})
+    assert response.status_code == 201
+    assert response.json()["completed_on"] == "2026-01-01"
+
+
+def test_create_habit_log_not_found(client):
+    response = client.post("/habits/999/logs", json={})
+    assert response.status_code == 404
+
+
+def test_list_habit_logs(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+    client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-01-01"})
+    client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-01-02"})
+
+    response = client.get(f"/habits/{habit['id']}/logs")
+    assert response.status_code == 200
+    dates = [log["completed_on"] for log in response.json()]
+    assert dates == ["2026-01-01", "2026-01-02"]
+
+
+def test_list_habit_logs_not_found(client):
+    response = client.get("/habits/999/logs")
+    assert response.status_code == 404
