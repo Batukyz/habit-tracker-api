@@ -40,3 +40,8 @@ class HabitLogOut(BaseModel):
     habit_id: int
     completed_on: date
     created_at: datetime
+
+
+class HabitStreakOut(BaseModel):
+    habit_id: int
+    current_streak: int

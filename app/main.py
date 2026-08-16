@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from . import models, schemas
 from .database import Base, engine, get_db
+from .streak import calculate_streak
 
 Base.metadata.create_all(bind=engine)
 
@@ -98,3 +99,17 @@ def delete_habit_log(habit_id: int, log_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Habit log not found")
     db.delete(log)
     db.commit()
+
+
+@app.get("/habits/{habit_id}/streak", response_model=schemas.HabitStreakOut)
+def get_habit_streak(habit_id: int, db: Session = Depends(get_db)):
+    habit = db.query(models.Habit).filter(models.Habit.id == habit_id).first()
+    if habit is None:
+        raise HTTPException(status_code=404, detail="Habit not found")
+    dates = [
+        log.completed_on
+        for log in db.query(models.HabitLog).filter(models.HabitLog.habit_id == habit_id).all()
+    ]
+    return schemas.HabitStreakOut(
+        habit_id=habit_id, current_streak=calculate_streak(dates, habit.frequency)
+    )

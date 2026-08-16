@@ -127,3 +127,27 @@ def test_delete_habit_log_log_not_found(client):
 
     response = client.delete(f"/habits/{habit['id']}/logs/999")
     assert response.status_code == 404
+
+
+def test_get_habit_streak(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+    client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-01-01"})
+    client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-01-02"})
+    client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-01-03"})
+
+    response = client.get(f"/habits/{habit['id']}/streak")
+    assert response.status_code == 200
+    assert response.json() == {"habit_id": habit["id"], "current_streak": 3}
+
+
+def test_get_habit_streak_no_logs(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+
+    response = client.get(f"/habits/{habit['id']}/streak")
+    assert response.status_code == 200
+    assert response.json() == {"habit_id": habit["id"], "current_streak": 0}
+
+
+def test_get_habit_streak_not_found(client):
+    response = client.get("/habits/999/streak")
+    assert response.status_code == 404
