@@ -85,6 +85,12 @@ curl -X POST http://127.0.0.1:8000/habits \
 Token süresi 24 saat. `SECRET_KEY` ortam değişkeni ayarlanmazsa geliştirme amaçlı
 sabit bir anahtar kullanılır — üretimde mutlaka kendi `SECRET_KEY`'ini ayarla.
 
+## Rate limiting
+
+Brute-force şifre denemelerine karşı `/auth/register` ve `/auth/login` IP başına
+dakikada 5 istekle sınırlı; limit aşılırsa `429 Too Many Requests` döner. Diğer
+tüm endpoint'ler için genel bir üst sınır (dakikada 200 istek) var.
+
 ## Endpoint'ler
 
 | Method | Path | Açıklama | Auth |

@@ -2,18 +2,23 @@ from datetime import date
 
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 
 from . import models, schemas
 from .auth import create_access_token, get_current_user
 from .database import get_db
+from .rate_limit import limiter
 from .security import hash_password, verify_password
 from .stats import completion_rate, longest_streak
 from .streak import calculate_streak
 
 app = FastAPI(title="Habit Tracker API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 def _get_owned_habit(habit_id: int, owner_id: int, db: Session) -> models.Habit:
@@ -33,7 +38,8 @@ def health_check():
 
 
 @app.post("/auth/register", response_model=schemas.UserOut, status_code=201)
-def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, user: schemas.UserCreate, db: Session = Depends(get_db)):
     existing = db.query(models.User).filter(models.User.email == user.email).first()
     if existing is not None:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -45,7 +51,12 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @app.post("/auth/login", response_model=schemas.Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
     if user is None or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
