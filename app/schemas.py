@@ -63,3 +63,11 @@ class HabitLogOut(BaseModel):
 class HabitStreakOut(BaseModel):
     habit_id: int
     current_streak: int
+
+
+class HabitStatsOut(BaseModel):
+    habit_id: int
+    total_completions: int
+    current_streak: int
+    longest_streak: int
+    completion_rate: float

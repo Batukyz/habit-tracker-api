@@ -61,8 +61,9 @@ sabit bir anahtar kullanılır — üretimde mutlaka kendi `SECRET_KEY`'ini ayar
 | GET | `/habits/{habit_id}/logs` | Habit'in tamamlama geçmişini listele | Evet |
 | DELETE | `/habits/{habit_id}/logs/{log_id}` | Bir tamamlama kaydını sil | Evet |
 | GET | `/habits/{habit_id}/streak` | Habit'in güncel kesintisiz serisini (streak) hesapla | Evet |
+| GET | `/habits/{habit_id}/stats` | Habit istatistikleri: toplam check-in, güncel/en uzun streak, tamamlanma oranı | Evet |
 
 Habit'ler kullanıcıya özeldir: bir kullanıcı başka bir kullanıcının habit'ine
 eriştiğinde de (o habit hiç yokmuş gibi) `404` alır — habit'in varlığı bile sızdırılmaz.
 
-Streak, `frequency` alanına göre günlük veya haftalık ardışık periyotları sayar; en son kayıttan geriye doğru ilk boşlukta durur.
+Streak, `frequency` alanına göre günlük veya haftalık ardışık periyotları sayar; en son kayıttan geriye doğru ilk boşlukta durur. `stats` ayrıca tüm zamanların en uzun serisini ve habit oluşturulduğundan bu yana beklenen periyotlara göre tamamlanma yüzdesini de döner.

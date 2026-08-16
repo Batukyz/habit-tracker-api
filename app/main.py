@@ -8,6 +8,7 @@ from . import models, schemas
 from .auth import create_access_token, get_current_user
 from .database import Base, engine, get_db
 from .security import hash_password, verify_password
+from .stats import completion_rate, longest_streak
 from .streak import calculate_streak
 
 Base.metadata.create_all(bind=engine)
@@ -168,4 +169,26 @@ def get_habit_streak(
     ]
     return schemas.HabitStreakOut(
         habit_id=habit_id, current_streak=calculate_streak(dates, habit.frequency)
+    )
+
+
+@app.get("/habits/{habit_id}/stats", response_model=schemas.HabitStatsOut)
+def get_habit_stats(
+    habit_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    habit = _get_owned_habit(habit_id, current_user.id, db)
+    dates = [
+        log.completed_on
+        for log in db.query(models.HabitLog).filter(models.HabitLog.habit_id == habit_id).all()
+    ]
+    return schemas.HabitStatsOut(
+        habit_id=habit_id,
+        total_completions=len(dates),
+        current_streak=calculate_streak(dates, habit.frequency),
+        longest_streak=longest_streak(dates, habit.frequency),
+        completion_rate=completion_rate(
+            dates, habit.frequency, since=habit.created_at.date(), until=date.today()
+        ),
     )

@@ -151,3 +151,23 @@ def test_get_habit_streak_no_logs(client):
 def test_get_habit_streak_not_found(client):
     response = client.get("/habits/999/streak")
     assert response.status_code == 404
+
+
+def test_get_habit_stats(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+    client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-08-01"})
+    client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-08-02"})
+    client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-08-10"})
+
+    response = client.get(f"/habits/{habit['id']}/stats")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["habit_id"] == habit["id"]
+    assert body["total_completions"] == 3
+    assert body["current_streak"] == 1
+    assert body["longest_streak"] == 2
+
+
+def test_get_habit_stats_not_found(client):
+    response = client.get("/habits/999/stats")
+    assert response.status_code == 404
