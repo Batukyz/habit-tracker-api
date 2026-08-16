@@ -20,19 +20,49 @@ uvicorn app.main:app --reload
 pytest
 ```
 
+## Kimlik doğrulama
+
+Habit'ler artık kullanıcıya özel. Önce kayıt olup giriş yapman, sonra her istekte
+aldığın token'ı `Authorization: Bearer <token>` header'ıyla göndermen gerekiyor.
+
+```bash
+# Kayıt
+curl -X POST http://127.0.0.1:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "sen@example.com", "password": "en-az-8-karakter"}'
+
+# Giriş (form-encoded, JSON değil)
+curl -X POST http://127.0.0.1:8000/auth/login \
+  -d "username=sen@example.com&password=en-az-8-karakter"
+
+# Token'ı kullanarak habit oluşturma
+curl -X POST http://127.0.0.1:8000/habits \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Kitap oku"}'
+```
+
+Token süresi 24 saat. `SECRET_KEY` ortam değişkeni ayarlanmazsa geliştirme amaçlı
+sabit bir anahtar kullanılır — üretimde mutlaka kendi `SECRET_KEY`'ini ayarla.
+
 ## Endpoint'ler
 
-| Method | Path | Açıklama |
-| --- | --- | --- |
-| GET | `/health` | Servis durum kontrolü |
-| POST | `/habits` | Yeni habit oluştur |
-| GET | `/habits` | Tüm habit'leri listele |
-| GET | `/habits/{habit_id}` | Tek bir habit'i getir |
-| PUT | `/habits/{habit_id}` | Habit'i güncelle |
-| DELETE | `/habits/{habit_id}` | Habit'i sil |
-| POST | `/habits/{habit_id}/logs` | Habit için tamamlama kaydı (check-in) oluştur |
-| GET | `/habits/{habit_id}/logs` | Habit'in tamamlama geçmişini listele |
-| DELETE | `/habits/{habit_id}/logs/{log_id}` | Bir tamamlama kaydını sil |
-| GET | `/habits/{habit_id}/streak` | Habit'in güncel kesintisiz serisini (streak) hesapla |
+| Method | Path | Açıklama | Auth |
+| --- | --- | --- | --- |
+| GET | `/health` | Servis durum kontrolü | Hayır |
+| POST | `/auth/register` | Yeni kullanıcı kaydı | Hayır |
+| POST | `/auth/login` | Giriş yap, access token al | Hayır |
+| POST | `/habits` | Yeni habit oluştur | Evet |
+| GET | `/habits` | Kendi habit'lerini listele | Evet |
+| GET | `/habits/{habit_id}` | Tek bir habit'i getir | Evet |
+| PUT | `/habits/{habit_id}` | Habit'i güncelle | Evet |
+| DELETE | `/habits/{habit_id}` | Habit'i sil | Evet |
+| POST | `/habits/{habit_id}/logs` | Habit için tamamlama kaydı (check-in) oluştur | Evet |
+| GET | `/habits/{habit_id}/logs` | Habit'in tamamlama geçmişini listele | Evet |
+| DELETE | `/habits/{habit_id}/logs/{log_id}` | Bir tamamlama kaydını sil | Evet |
+| GET | `/habits/{habit_id}/streak` | Habit'in güncel kesintisiz serisini (streak) hesapla | Evet |
+
+Habit'ler kullanıcıya özeldir: bir kullanıcı başka bir kullanıcının habit'ine
+eriştiğinde de (o habit hiç yokmuş gibi) `404` alır — habit'in varlığı bile sızdırılmaz.
 
 Streak, `frequency` alanına göre günlük veya haftalık ardışık periyotları sayar; en son kayıttan geriye doğru ilk boşlukta durur.
