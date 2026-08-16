@@ -10,9 +10,30 @@ pip install -r requirements.txt
 
 ## Çalıştırma
 
+Önce veritabanı tablolarını oluşturmak için migration'ları uygula (bir defalık,
+ya da modelller değiştiğinde tekrar):
+
+```bash
+alembic upgrade head
+```
+
+Sonra sunucuyu başlat:
+
 ```bash
 uvicorn app.main:app --reload
 ```
+
+## Veritabanı migration'ları
+
+Şema artık Alembic ile yönetiliyor — `app/models.py` içindeki modeller
+otomatik olarak tablo oluşturmuyor. `models.py`'de değişiklik yaptığında:
+
+```bash
+alembic revision --autogenerate -m "kisa aciklama"
+alembic upgrade head
+```
+
+Yeni migration dosyasını (`alembic/versions/` altında) commit'lemeyi unutma.
 
 ## Test
 
@@ -35,8 +56,9 @@ SECRET_KEY=kendi-gizli-anahtarin docker compose up --build
 
 ## CI
 
-`main`'e her push/PR'da GitHub Actions otomatik olarak testleri çalıştırır ve
-Docker image'ının build olduğunu doğrular (`.github/workflows/ci.yml`).
+`main`'e her push/PR'da GitHub Actions otomatik olarak: migration'ların modellerle
+uyumlu olduğunu (`alembic check`), testlerin geçtiğini, Docker image'ının build
+olup ayağa kalktığını (`/health` kontrolü) doğrular (`.github/workflows/ci.yml`).
 
 ## Kimlik doğrulama
 

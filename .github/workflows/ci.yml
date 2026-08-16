@@ -19,6 +19,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Check migrations are up to date with models
+        run: |
+          alembic upgrade head
+          alembic check
+
       - name: Run tests
         run: pytest -q
 
@@ -30,3 +35,10 @@ jobs:
 
       - name: Build image
         run: docker build -t habit-tracker-api .
+
+      - name: Smoke test container
+        run: |
+          docker run -d --name habit-api -p 8000:8000 habit-tracker-api
+          timeout 30 sh -c 'until curl -sf http://localhost:8000/health; do sleep 1; done'
+          docker logs habit-api
+          docker stop habit-api

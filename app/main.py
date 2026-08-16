@@ -8,12 +8,10 @@ from sqlalchemy.orm import Session
 
 from . import models, schemas
 from .auth import create_access_token, get_current_user
-from .database import Base, engine, get_db
+from .database import get_db
 from .security import hash_password, verify_password
 from .stats import completion_rate, longest_streak
 from .streak import calculate_streak
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Habit Tracker API")
 
