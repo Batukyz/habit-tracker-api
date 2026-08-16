@@ -22,6 +22,11 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class UserUpdate(BaseModel):
+    email: Optional[str] = None
+    password: Optional[str] = Field(default=None, min_length=8)
+
+
 class HabitBase(BaseModel):
     title: str
     description: Optional[str] = None

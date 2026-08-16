@@ -1,6 +1,8 @@
 from datetime import date
 
-from fastapi import Depends, FastAPI, HTTPException
+from typing import Optional
+
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -52,6 +54,33 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     return schemas.Token(access_token=create_access_token(subject=user.email))
 
 
+@app.get("/me", response_model=schemas.UserOut)
+def read_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
+
+
+@app.put("/me", response_model=schemas.UserOut)
+def update_me(
+    update: schemas.UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if update.email is not None:
+        existing = (
+            db.query(models.User)
+            .filter(models.User.email == update.email, models.User.id != current_user.id)
+            .first()
+        )
+        if existing is not None:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        current_user.email = update.email
+    if update.password is not None:
+        current_user.hashed_password = hash_password(update.password)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 @app.post("/habits", response_model=schemas.HabitOut, status_code=201)
 def create_habit(
     habit: schemas.HabitCreate,
@@ -67,9 +96,22 @@ def create_habit(
 
 @app.get("/habits", response_model=list[schemas.HabitOut])
 def list_habits(
-    db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)
+    frequency: Optional[str] = None,
+    is_completed: Optional[bool] = None,
+    search: Optional[str] = None,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    return db.query(models.Habit).filter(models.Habit.owner_id == current_user.id).all()
+    query = db.query(models.Habit).filter(models.Habit.owner_id == current_user.id)
+    if frequency is not None:
+        query = query.filter(models.Habit.frequency == frequency)
+    if is_completed is not None:
+        query = query.filter(models.Habit.is_completed == is_completed)
+    if search:
+        query = query.filter(models.Habit.title.ilike(f"%{search}%"))
+    return query.order_by(models.Habit.id).offset(skip).limit(limit).all()
 
 
 @app.get("/habits/{habit_id}", response_model=schemas.HabitOut)

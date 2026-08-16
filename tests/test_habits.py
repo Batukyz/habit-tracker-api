@@ -171,3 +171,43 @@ def test_get_habit_stats(client):
 def test_get_habit_stats_not_found(client):
     response = client.get("/habits/999/stats")
     assert response.status_code == 404
+
+
+def test_list_habits_filter_by_frequency(client):
+    client.post("/habits", json={"title": "Read", "frequency": "daily"})
+    client.post("/habits", json={"title": "Gym", "frequency": "weekly"})
+
+    response = client.get("/habits", params={"frequency": "weekly"})
+    assert response.status_code == 200
+    titles = [h["title"] for h in response.json()]
+    assert titles == ["Gym"]
+
+
+def test_list_habits_filter_by_is_completed(client):
+    client.post("/habits", json={"title": "Read", "is_completed": False})
+    client.post("/habits", json={"title": "Gym", "is_completed": True})
+
+    response = client.get("/habits", params={"is_completed": True})
+    assert response.status_code == 200
+    titles = [h["title"] for h in response.json()]
+    assert titles == ["Gym"]
+
+
+def test_list_habits_search(client):
+    client.post("/habits", json={"title": "Read a book"})
+    client.post("/habits", json={"title": "Gym"})
+
+    response = client.get("/habits", params={"search": "book"})
+    assert response.status_code == 200
+    titles = [h["title"] for h in response.json()]
+    assert titles == ["Read a book"]
+
+
+def test_list_habits_pagination(client):
+    for i in range(5):
+        client.post("/habits", json={"title": f"Habit {i}"})
+
+    response = client.get("/habits", params={"skip": 2, "limit": 2})
+    assert response.status_code == 200
+    titles = [h["title"] for h in response.json()]
+    assert titles == ["Habit 2", "Habit 3"]

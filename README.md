@@ -52,8 +52,10 @@ sabit bir anahtar kullanılır — üretimde mutlaka kendi `SECRET_KEY`'ini ayar
 | GET | `/health` | Servis durum kontrolü | Hayır |
 | POST | `/auth/register` | Yeni kullanıcı kaydı | Hayır |
 | POST | `/auth/login` | Giriş yap, access token al | Hayır |
+| GET | `/me` | Kendi profilini gör | Evet |
+| PUT | `/me` | E-posta/şifreni güncelle | Evet |
 | POST | `/habits` | Yeni habit oluştur | Evet |
-| GET | `/habits` | Kendi habit'lerini listele | Evet |
+| GET | `/habits` | Kendi habit'lerini listele (filtre + sayfalama) | Evet |
 | GET | `/habits/{habit_id}` | Tek bir habit'i getir | Evet |
 | PUT | `/habits/{habit_id}` | Habit'i güncelle | Evet |
 | DELETE | `/habits/{habit_id}` | Habit'i sil | Evet |
@@ -67,3 +69,13 @@ Habit'ler kullanıcıya özeldir: bir kullanıcı başka bir kullanıcının hab
 eriştiğinde de (o habit hiç yokmuş gibi) `404` alır — habit'in varlığı bile sızdırılmaz.
 
 Streak, `frequency` alanına göre günlük veya haftalık ardışık periyotları sayar; en son kayıttan geriye doğru ilk boşlukta durur. `stats` ayrıca tüm zamanların en uzun serisini ve habit oluşturulduğundan bu yana beklenen periyotlara göre tamamlanma yüzdesini de döner.
+
+`GET /habits` şu query parametrelerini destekler:
+
+| Parametre | Açıklama |
+| --- | --- |
+| `frequency` | `daily` veya `weekly` ile filtrele |
+| `is_completed` | `true`/`false` ile filtrele |
+| `search` | Başlıkta geçen metne göre ara (büyük/küçük harf duyarsız) |
+| `skip` | Atlanacak kayıt sayısı (varsayılan 0) |
+| `limit` | Sayfa başına kayıt sayısı (varsayılan 20, en fazla 100) |
