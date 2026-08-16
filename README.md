@@ -20,6 +20,24 @@ uvicorn app.main:app --reload
 pytest
 ```
 
+## Docker ile çalıştırma
+
+```bash
+docker compose up --build
+```
+
+Veritabanı, adlandırılmış bir Docker volume'ünde (`habit-data`) kalıcı olarak saklanır,
+konteyner yeniden başlasa da veriler kaybolmaz. Kendi `SECRET_KEY`'ini kullanmak için:
+
+```bash
+SECRET_KEY=kendi-gizli-anahtarin docker compose up --build
+```
+
+## CI
+
+`main`'e her push/PR'da GitHub Actions otomatik olarak testleri çalıştırır ve
+Docker image'ının build olduğunu doğrular (`.github/workflows/ci.yml`).
+
 ## Kimlik doğrulama
 
 Habit'ler artık kullanıcıya özel. Önce kayıt olup giriş yapman, sonra her istekte
