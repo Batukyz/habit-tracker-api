@@ -12,12 +12,16 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 from .auth import (
     create_access_token,
+    create_password_reset_token,
     create_refresh_token,
     get_current_user,
+    revoke_all_refresh_tokens,
     revoke_refresh_token,
+    use_password_reset_token,
     use_refresh_token,
 )
 from .database import get_db
+from .email import send_password_reset_email
 from .logging_config import RequestLoggingMiddleware, configure_logging, logger
 from .rate_limit import limiter
 from .security import hash_password, verify_password
@@ -96,6 +100,32 @@ def refresh(payload: schemas.RefreshRequest, db: Session = Depends(get_db)):
 @app.post("/auth/logout", status_code=204)
 def logout(payload: schemas.LogoutRequest, db: Session = Depends(get_db)):
     revoke_refresh_token(payload.refresh_token, db)
+
+
+@app.post("/auth/forgot-password", response_model=schemas.MessageOut, status_code=202)
+@limiter.limit("5/minute")
+def forgot_password(
+    request: Request, payload: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)
+):
+    user = db.query(models.User).filter(models.User.email == payload.email).first()
+    if user is not None:
+        token = create_password_reset_token(user_id=user.id, db=db)
+        send_password_reset_email(user.email, token)
+    # Always the same response, whether or not the email is registered,
+    # so this endpoint can't be used to enumerate accounts.
+    return schemas.MessageOut(detail="If that email is registered, a reset link has been sent.")
+
+
+@app.post("/auth/reset-password", status_code=204)
+@limiter.limit("5/minute")
+def reset_password(
+    request: Request, payload: schemas.ResetPasswordRequest, db: Session = Depends(get_db)
+):
+    user = use_password_reset_token(payload.token, db)
+    user.hashed_password = hash_password(payload.new_password)
+    db.commit()
+    # Force re-login everywhere: a leaked/stale session shouldn't survive a reset.
+    revoke_all_refresh_tokens(user.id, db)
 
 
 @app.get("/me", response_model=schemas.UserOut)

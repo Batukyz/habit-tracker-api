@@ -15,6 +15,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 30
+PASSWORD_RESET_TOKEN_EXPIRE_MINUTES = 60
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -87,3 +88,48 @@ def revoke_refresh_token(raw_token: str, db: Session) -> None:
     if db_token is not None:
         db_token.revoked = True
         db.commit()
+
+
+def revoke_all_refresh_tokens(user_id: int, db: Session) -> None:
+    tokens = (
+        db.query(models.RefreshToken)
+        .filter(models.RefreshToken.user_id == user_id, models.RefreshToken.revoked.is_(False))
+        .all()
+    )
+    for token in tokens:
+        token.revoked = True
+    db.commit()
+
+
+def create_password_reset_token(user_id: int, db: Session) -> str:
+    raw_token = secrets.token_urlsafe(32)
+    db.add(
+        models.PasswordResetToken(
+            user_id=user_id,
+            token_hash=_hash_token(raw_token),
+            expires_at=datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_TOKEN_EXPIRE_MINUTES),
+        )
+    )
+    db.commit()
+    return raw_token
+
+
+def use_password_reset_token(raw_token: str, db: Session) -> models.User:
+    """Validates a password reset token (must exist, be unused, and unexpired), marks it
+    used, and returns its owner."""
+    invalid = HTTPException(status_code=400, detail="Invalid or expired reset token")
+    db_token = (
+        db.query(models.PasswordResetToken)
+        .filter(models.PasswordResetToken.token_hash == _hash_token(raw_token))
+        .first()
+    )
+    if db_token is None or db_token.used or db_token.expires_at < datetime.utcnow():
+        raise invalid
+
+    user = db.query(models.User).filter(models.User.id == db_token.user_id).first()
+    if user is None:
+        raise invalid
+
+    db_token.used = True
+    db.commit()
+    return user

@@ -112,11 +112,35 @@ kısa access token ömrüyle (30 dk) kabul edilebilir bir risk seviyesine indirg
 `SECRET_KEY` ortam değişkeni ayarlanmazsa geliştirme amaçlı sabit bir anahtar
 kullanılır — üretimde mutlaka kendi `SECRET_KEY`'ini ayarla.
 
+## Şifre sıfırlama
+
+```bash
+# 1. Sıfırlama iste (kayıtlı olsun olmasın aynı cevabı döner, e-posta sızdırmaz)
+curl -X POST http://127.0.0.1:8000/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email": "sen@example.com"}'
+
+# 2. E-postana gelen (ya da SMTP ayarlanmadıysa sunucu logunda görünen) token ile sıfırla
+curl -X POST http://127.0.0.1:8000/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{"token": "<reset_token>", "new_password": "yeni-en-az-8-karakter"}'
+```
+
+Reset token'ı 60 dakika geçerli, tek kullanımlık. Şifre sıfırlanınca kullanıcının
+tüm refresh token'ları iptal edilir — açık tüm oturumlar yeniden giriş yapmak
+zorunda kalır.
+
+**E-posta gönderimi:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`,
+`SMTP_FROM` ortam değişkenleri ayarlanmadıysa e-posta gönderilmez, token yalnızca
+sunucu loguna yazılır (geliştirme/test için). Gerçek e-posta göndermek için bu
+değişkenleri kendi SMTP sağlayıcına (Gmail, SendGrid, vb.) göre ayarla.
+
 ## Rate limiting
 
-Brute-force şifre denemelerine karşı `/auth/register` ve `/auth/login` IP başına
-dakikada 5 istekle sınırlı; limit aşılırsa `429 Too Many Requests` döner. Diğer
-tüm endpoint'ler için genel bir üst sınır (dakikada 200 istek) var.
+Brute-force şifre denemelerine karşı `/auth/register`, `/auth/login`,
+`/auth/forgot-password` ve `/auth/reset-password` IP başına dakikada 5 istekle
+sınırlı; limit aşılırsa `429 Too Many Requests` döner. Diğer tüm endpoint'ler
+için genel bir üst sınır (dakikada 200 istek) var.
 
 ## Endpoint'ler
 
@@ -127,6 +151,8 @@ tüm endpoint'ler için genel bir üst sınır (dakikada 200 istek) var.
 | POST | `/auth/login` | Giriş yap, access + refresh token al | Hayır |
 | POST | `/auth/refresh` | Refresh token ile yeni access + refresh token al | Hayır |
 | POST | `/auth/logout` | Refresh token'ı iptal et | Hayır |
+| POST | `/auth/forgot-password` | Şifre sıfırlama token'ı iste | Hayır |
+| POST | `/auth/reset-password` | Token ile şifreyi sıfırla | Hayır |
 | GET | `/me` | Kendi profilini gör | Evet |
 | PUT | `/me` | E-posta/şifreni güncelle | Evet |
 | POST | `/habits` | Yeni habit oluştur | Evet |
