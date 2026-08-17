@@ -79,7 +79,41 @@
   .actions { display: flex; gap: 6px; }
   .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
   .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 24px 0; }
-  #login-view, #app-view { display: none; }
+  #login-view, #app-view, #detail-view { display: none; }
+  .habit-title { cursor: pointer; }
+  .habit-title:hover { color: var(--accent); }
+  .stat-row { display: flex; justify-content: space-between; margin-bottom: 12px; }
+  .stat-row:last-child { margin-bottom: 0; }
+  .stat-label { color: var(--muted); font-size: 13px; }
+  .stat-value { font-weight: 700; font-size: 13px; }
+  .heatmap-scroll { overflow-x: auto; padding-bottom: 4px; }
+  .heatmap-months {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 12px;
+    gap: 3px;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    margin-left: 18px;
+  }
+  .heatmap-body { display: flex; gap: 3px; }
+  .heatmap-daylabels {
+    display: grid;
+    grid-template-rows: repeat(7, 12px);
+    gap: 3px;
+    font-size: 9px;
+    color: var(--muted);
+    margin-right: 2px;
+  }
+  .heatmap-daylabels div { display: flex; align-items: center; }
+  .heatmap-grid { display: flex; gap: 3px; }
+  .heatmap-week { display: grid; grid-template-rows: repeat(7, 12px); gap: 3px; }
+  .heatmap-cell { width: 12px; height: 12px; border-radius: 3px; background: var(--border); }
+  .heatmap-cell.filled { background: var(--success); }
+  .heatmap-cell.future { background: transparent; }
+  .heatmap-legend { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); margin-top: 10px; }
+  .heatmap-legend .heatmap-cell { display: inline-block; }
 </style>
 </head>
 <body>
@@ -129,6 +163,37 @@
     <div class="card">
       <div id="habit-list"></div>
       <div class="empty" id="empty-state" style="display:none">Henüz habit yok. Yukarıdan ekle.</div>
+    </div>
+  </div>
+
+  <div id="detail-view">
+    <div class="topbar">
+      <button class="btn-ghost" id="detail-back-btn">← Geri</button>
+      <button class="btn-check btn-small" id="detail-check-btn">✓ Bugün</button>
+    </div>
+    <h1 id="detail-title"></h1>
+
+    <div class="card">
+      <div class="stat-row"><span class="stat-label">Güncel seri</span><span class="stat-value" id="detail-current-streak"></span></div>
+      <div class="stat-row"><span class="stat-label">En uzun seri</span><span class="stat-value" id="detail-longest-streak"></span></div>
+      <div class="stat-row"><span class="stat-label">Toplam check-in</span><span class="stat-value" id="detail-total"></span></div>
+      <div class="stat-row"><span class="stat-label">Tamamlanma oranı</span><span class="stat-value" id="detail-rate"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="heatmap-scroll">
+        <div class="heatmap-months" id="heatmap-months"></div>
+        <div class="heatmap-body">
+          <div class="heatmap-daylabels"><div></div><div>Pzt</div><div></div><div>Çrş</div><div></div><div>Cum</div><div></div></div>
+          <div class="heatmap-grid" id="heatmap-grid"></div>
+        </div>
+      </div>
+      <div class="heatmap-legend">
+        <span>Az</span>
+        <span class="heatmap-cell"></span>
+        <span class="heatmap-cell filled"></span>
+        <span>Çok</span>
+      </div>
     </div>
   </div>
 
@@ -197,6 +262,7 @@ function showLogin() {
 
 function showApp() {
   document.getElementById("login-view").style.display = "none";
+  document.getElementById("detail-view").style.display = "none";
   document.getElementById("app-view").style.display = "block";
   loadHabits();
 }
@@ -301,7 +367,7 @@ async function loadHabits() {
     row.className = "habit";
     row.innerHTML = `
       <div>
-        <div class="habit-title">${escapeHtml(habit.title)}</div>
+        <div class="habit-title" data-action="open" data-id="${habit.id}">${escapeHtml(habit.title)}</div>
         <div class="habit-meta">${habit.frequency === "weekly" ? "Haftalık" : "Günlük"} · <span class="streak">${streak.current_streak} 🔥</span></div>
       </div>
       <div class="actions">
@@ -312,6 +378,9 @@ async function loadHabits() {
     list.appendChild(row);
   }
 
+  list.querySelectorAll("[data-action='open']").forEach((el) => {
+    el.addEventListener("click", () => openDetail(el.dataset.id));
+  });
   list.querySelectorAll("[data-action='check']").forEach((btn) => {
     btn.addEventListener("click", async () => {
       await apiFetch(`/habits/${btn.dataset.id}/logs`, {
@@ -328,6 +397,105 @@ async function loadHabits() {
       loadHabits();
     });
   });
+}
+
+let currentDetailId = null;
+
+document.getElementById("detail-back-btn").addEventListener("click", showApp);
+document.getElementById("detail-check-btn").addEventListener("click", async () => {
+  await apiFetch(`/habits/${currentDetailId}/logs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  openDetail(currentDetailId);
+});
+
+async function openDetail(habitId) {
+  currentDetailId = habitId;
+  document.getElementById("app-view").style.display = "none";
+  document.getElementById("detail-view").style.display = "block";
+
+  const [habitRes, statsRes, logsRes] = await Promise.all([
+    apiFetch(`/habits/${habitId}`),
+    apiFetch(`/habits/${habitId}/stats`),
+    apiFetch(`/habits/${habitId}/logs`),
+  ]);
+  const habit = await habitRes.json();
+  const stats = await statsRes.json();
+  const logs = await logsRes.json();
+
+  document.getElementById("detail-title").textContent = habit.title;
+  document.getElementById("detail-current-streak").textContent = `${stats.current_streak} 🔥`;
+  document.getElementById("detail-longest-streak").textContent = `${stats.longest_streak} 🏆`;
+  document.getElementById("detail-total").textContent = stats.total_completions;
+  document.getElementById("detail-rate").textContent = `%${stats.completion_rate}`;
+
+  const completedDates = new Set(logs.map((log) => log.completed_on));
+  renderHeatmap(completedDates);
+}
+
+function renderHeatmap(completedDates) {
+  const monthNames = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const start = new Date(today);
+  start.setDate(start.getDate() - 370);
+  start.setDate(start.getDate() - start.getDay()); // back up to the preceding Sunday
+
+  const weeks = [];
+  let cursor = new Date(start);
+  while (cursor <= today) {
+    const week = [];
+    for (let i = 0; i < 7; i++) {
+      week.push(new Date(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+
+  const gridEl = document.getElementById("heatmap-grid");
+  const monthsEl = document.getElementById("heatmap-months");
+  gridEl.innerHTML = "";
+  monthsEl.innerHTML = "";
+
+  let lastMonth = -1;
+  for (const week of weeks) {
+    const weekEl = document.createElement("div");
+    weekEl.className = "heatmap-week";
+
+    const firstOfMonthDay = week.find((d) => d.getDate() === 1) || (week[0].getMonth() !== lastMonth && lastMonth === -1 ? week[0] : null);
+    const label = document.createElement("div");
+    if (firstOfMonthDay && firstOfMonthDay.getMonth() !== lastMonth) {
+      label.textContent = monthNames[firstOfMonthDay.getMonth()];
+      lastMonth = firstOfMonthDay.getMonth();
+    }
+    monthsEl.appendChild(label);
+
+    for (const day of week) {
+      const cell = document.createElement("div");
+      const iso = toIsoDate(day);
+      if (day > today) {
+        cell.className = "heatmap-cell future";
+      } else if (completedDates.has(iso)) {
+        cell.className = "heatmap-cell filled";
+        cell.title = iso;
+      } else {
+        cell.className = "heatmap-cell";
+        cell.title = iso;
+      }
+      weekEl.appendChild(cell);
+    }
+    gridEl.appendChild(weekEl);
+  }
+}
+
+function toIsoDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function escapeHtml(str) {

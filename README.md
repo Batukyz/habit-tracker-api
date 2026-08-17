@@ -33,9 +33,12 @@ http://127.0.0.1:8000/app/
 ```
 
 Kayıt ol / giriş yap → habit ekle → "✓ Bugün" butonuyla check-in yap → güncel
-streak'i gör → "Arşivle" ile kaldır. Token'lar tarayıcının `localStorage`'ında
-tutulur, süresi dolan access token otomatik yenilenir (refresh akışı arka planda
-çalışır). Saf HTML/CSS/JS — ekstra build aracı veya bağımlılık gerekmez,
+streak'i gör → "Arşivle" ile kaldır. Bir habit'in başlığına tıklayınca, GitHub'ın
+katkı grafiğine benzer bir ısı haritasıyla (son ~1 yıl, gün gün) o habit'in tüm
+geçmişini, güncel/en uzun serisini ve tamamlanma oranını gösteren bir detay
+ekranı açılır. Token'lar tarayıcının `localStorage`'ında tutulur, süresi dolan
+access token otomatik yenilenir (refresh akışı arka planda çalışır). Saf
+HTML/CSS/JS — ekstra build aracı veya bağımlılık gerekmez,
 `app/static/index.html` dosyasında tek parça halinde.
 
 ## Veritabanı migration'ları
