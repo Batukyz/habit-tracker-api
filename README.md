@@ -60,6 +60,13 @@ SECRET_KEY=kendi-gizli-anahtarin docker compose up --build
 uyumlu olduğunu (`alembic check`), testlerin geçtiğini, Docker image'ının build
 olup ayağa kalktığını (`/health` kontrolü) doğrular (`.github/workflows/ci.yml`).
 
+## Loglama ve hata yönetimi
+
+Her istek, method/path/durum kodu/süre bilgisiyle konsola loglanır. Beklenmeyen
+bir hata (500) oluşursa, gerçek exception sunucu loguna yazılır ama istemciye
+sadece `{"detail": "Internal server error"}` döner — iç detaylar (stack trace,
+sorgu, dosya yolu) dışarı sızmaz.
+
 ## Kimlik doğrulama
 
 Habit'ler artık kullanıcıya özel. Önce kayıt olup giriş yapman, sonra her istekte

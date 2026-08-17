@@ -3,6 +3,7 @@ from datetime import date
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -17,14 +18,24 @@ from .auth import (
     use_refresh_token,
 )
 from .database import get_db
+from .logging_config import RequestLoggingMiddleware, configure_logging, logger
 from .rate_limit import limiter
 from .security import hash_password, verify_password
 from .stats import completion_rate, longest_streak
 from .streak import calculate_streak
 
+configure_logging()
+
 app = FastAPI(title="Habit Tracker API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(RequestLoggingMiddleware)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 def _get_owned_habit(habit_id: int, owner_id: int, db: Session) -> models.Habit:
