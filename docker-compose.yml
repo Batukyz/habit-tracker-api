@@ -1,13 +1,28 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=habit
+      - POSTGRES_PASSWORD=habit
+      - POSTGRES_DB=habit_tracker
+    volumes:
+      - habit-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U habit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   api:
     build: .
     ports:
       - "8000:8000"
     environment:
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
-      - DATABASE_URL=sqlite:///./data/habits.db
-    volumes:
-      - habit-data:/app/data
+      - DATABASE_URL=postgresql+psycopg://habit:habit@db:5432/habit_tracker
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
-  habit-data:
+  habit-postgres-data:

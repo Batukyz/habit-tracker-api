@@ -47,12 +47,32 @@ pytest
 docker compose up --build
 ```
 
-Veritabanı, adlandırılmış bir Docker volume'ünde (`habit-data`) kalıcı olarak saklanır,
-konteyner yeniden başlasa da veriler kaybolmaz. Kendi `SECRET_KEY`'ini kullanmak için:
+`docker-compose.yml` artık gerçek bir **PostgreSQL** servisi (`db`) içeriyor —
+API konteyneri `db` sağlıklı hale gelene kadar bekleyip ona bağlanıyor, veriler
+adlandırılmış bir Docker volume'ünde (`habit-postgres-data`) kalıcı saklanıyor.
+Konteynerin başlangıcında (`Dockerfile` CMD) `alembic upgrade head` otomatik
+çalışıp Postgres şemasını oluşturuyor/günceliyor.
+
+Kendi `SECRET_KEY`'ini kullanmak için:
 
 ```bash
 SECRET_KEY=kendi-gizli-anahtarin docker compose up --build
 ```
+
+Docker olmadan yerel geliştirme (`uvicorn app.main:app --reload`) hâlâ varsayılan
+olarak SQLite kullanır — hızlı, sıfır kurulum gerektiren local dev için Postgres
+şart değil; `DATABASE_URL` ortam değişkenini kendin ayarlarsan (örn. yerel bir
+Postgres'e) o da çalışır.
+
+**Not:** Bu geliştirme ortamında Docker CLI kurulu değil, bu yüzden
+`docker compose up` ile gerçek bir Postgres'e karşı migration'ların uçtan uca
+çalıştığını bizzat doğrulayamadım — sadece bağlantı dizesinin ve `psycopg`
+sürücüsünün doğru çözümlendiğini (SQLAlchemy engine oluşturma seviyesinde)
+teyit ettim. İlk `docker compose up --build` çalıştırmanda `alembic upgrade head`
+adımının loglarını kontrol etmen iyi olur; bir sorun çıkarsa muhtemel şüpheli
+nokta, ilk migration'daki `CURRENT_TIMESTAMP`/`CURRENT_DATE` server default
+ifadeleridir (SQLite'tan otomatik üretildiler, Postgres'te de geçerli olmaları
+beklenir ama gerçek ortamda doğrulanmadı).
 
 ## CI
 
