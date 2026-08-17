@@ -33,7 +33,10 @@ http://127.0.0.1:8000/app/
 ```
 
 Kayıt ol / giriş yap → habit ekle → "✓ Bugün" butonuyla check-in yap → güncel
-streak'i gör → "Arşivle" ile kaldır. Bir habit'in başlığına tıklayınca, GitHub'ın
+streak'i gör → "Arşivle" ile kaldır. "📚 Habit kütüphanesinden hızlı ekle"
+butonuyla, her biri kendi emojisiyle eşleşmiş 30 klasik habit'ten (Su iç,
+Meditasyon yap, Erken kalk, vb.) tek tıkla ekleyebilirsin — zaten eklenmiş
+olanlar otomatik soluklaşıp devre dışı kalır. Bir habit'in başlığına tıklayınca, GitHub'ın
 katkı grafiğine benzer bir ısı haritasıyla (son ~1 yıl, gün gün) o habit'in tüm
 geçmişini, güncel/en uzun serisini ve tamamlanma oranını gösteren bir detay
 ekranı açılır. Token'lar tarayıcının `localStorage`'ında tutulur, süresi dolan

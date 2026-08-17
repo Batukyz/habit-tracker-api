@@ -114,6 +114,31 @@
   .heatmap-cell.future { background: transparent; }
   .heatmap-legend { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); margin-top: 10px; }
   .heatmap-legend .heatmap-cell { display: inline-block; }
+  .library-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .library-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0f1115;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text);
+    text-align: left;
+    width: 100%;
+  }
+  .library-item:hover { border-color: var(--accent); }
+  .library-item .emoji { font-size: 16px; }
+  .library-item.added { opacity: 0.45; }
 </style>
 </head>
 <body>
@@ -158,6 +183,14 @@
         <input type="text" id="new-habit-title" placeholder="Yeni habit (örn. Kitap oku)" required>
         <button type="submit" class="btn-primary" style="width:auto; white-space:nowrap;">Ekle</button>
       </form>
+      <div class="toggle">
+        <button type="button" class="btn-ghost" id="toggle-library-btn">📚 Habit kütüphanesinden hızlı ekle</button>
+      </div>
+    </div>
+
+    <div class="card" id="library-card" style="display:none">
+      <div class="library-grid" id="library-grid"></div>
+      <div class="error" id="library-message" style="color: var(--muted); margin-top: 10px;"></div>
     </div>
 
     <div class="card">
@@ -201,6 +234,41 @@
 
 <script>
 const API = "";
+
+const HABIT_LIBRARY = [
+  { emoji: "📚", name: "Kitap oku" },
+  { emoji: "🏃", name: "Koşuya çık" },
+  { emoji: "💧", name: "Su iç" },
+  { emoji: "🧘", name: "Meditasyon yap" },
+  { emoji: "🛌", name: "Erken yat" },
+  { emoji: "⏰", name: "Erken kalk" },
+  { emoji: "🏋️", name: "Spor yap" },
+  { emoji: "🚶", name: "Yürüyüş yap" },
+  { emoji: "🥗", name: "Sağlıklı beslen" },
+  { emoji: "🚭", name: "Sigara içme" },
+  { emoji: "💊", name: "Vitamin al" },
+  { emoji: "🧴", name: "Cilt bakımı yap" },
+  { emoji: "🦷", name: "Diş fırçala" },
+  { emoji: "📝", name: "Günlük tut" },
+  { emoji: "🎯", name: "Hedeflerini gözden geçir" },
+  { emoji: "💰", name: "Para biriktir" },
+  { emoji: "📖", name: "Ders çalış" },
+  { emoji: "🗣️", name: "Dil pratiği yap" },
+  { emoji: "🎸", name: "Enstrüman çal" },
+  { emoji: "🎨", name: "Resim/çizim yap" },
+  { emoji: "🧹", name: "Ev temizliği yap" },
+  { emoji: "🌱", name: "Bitkileri sula" },
+  { emoji: "📵", name: "Telefon süresini azalt" },
+  { emoji: "☕", name: "Kafeini azalt" },
+  { emoji: "🍎", name: "Meyve/sebze ye" },
+  { emoji: "🚴", name: "Bisiklete bin" },
+  { emoji: "🏊", name: "Yüzme yap" },
+  { emoji: "🙏", name: "Şükran günlüğü yaz" },
+  { emoji: "👨‍👩‍👧", name: "Aileyle vakit geçir" },
+  { emoji: "🧠", name: "Zihin egzersizi yap" },
+];
+
+let currentHabits = [];
 
 function getTokens() {
   return {
@@ -346,9 +414,55 @@ document.getElementById("add-habit-form").addEventListener("submit", async (e) =
   loadHabits();
 });
 
+document.getElementById("toggle-library-btn").addEventListener("click", () => {
+  const card = document.getElementById("library-card");
+  const opening = card.style.display === "none";
+  card.style.display = opening ? "block" : "none";
+  if (opening) renderLibrary();
+});
+
+function renderLibrary() {
+  const grid = document.getElementById("library-grid");
+  const message = document.getElementById("library-message");
+  message.textContent = "";
+  grid.innerHTML = "";
+
+  const existingTitles = new Set(currentHabits.map((h) => h.title));
+
+  for (const item of HABIT_LIBRARY) {
+    const fullTitle = `${item.emoji} ${item.name}`;
+    const already = existingTitles.has(fullTitle);
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "library-item" + (already ? " added" : "");
+    btn.innerHTML = `<span class="emoji">${item.emoji}</span><span>${escapeHtml(item.name)}</span>`;
+    if (already) {
+      btn.disabled = true;
+      btn.title = "Zaten listende";
+    } else {
+      btn.addEventListener("click", () => quickAddFromLibrary(fullTitle));
+    }
+    grid.appendChild(btn);
+  }
+}
+
+async function quickAddFromLibrary(fullTitle) {
+  const message = document.getElementById("library-message");
+  await apiFetch("/habits", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: fullTitle }),
+  });
+  message.textContent = `"${fullTitle}" eklendi.`;
+  await loadHabits();
+  renderLibrary();
+}
+
 async function loadHabits() {
   const response = await apiFetch("/habits?limit=100");
   const habits = await response.json();
+  currentHabits = habits;
   const list = document.getElementById("habit-list");
   const empty = document.getElementById("empty-state");
   list.innerHTML = "";
