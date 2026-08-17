@@ -52,19 +52,60 @@ def test_update_habit_not_found(client):
     assert response.status_code == 404
 
 
-def test_delete_habit(client):
+def test_delete_habit_archives_instead_of_removing(client):
     created = client.post("/habits", json={"title": "Read"}).json()
 
     response = client.delete(f"/habits/{created['id']}")
     assert response.status_code == 204
 
     response = client.get(f"/habits/{created['id']}")
-    assert response.status_code == 404
+    assert response.status_code == 200
+    assert response.json()["is_archived"] is True
 
 
 def test_delete_habit_not_found(client):
     response = client.delete("/habits/999")
     assert response.status_code == 404
+
+
+def test_archived_habits_hidden_from_default_list(client):
+    kept = client.post("/habits", json={"title": "Kept"}).json()
+    archived = client.post("/habits", json={"title": "Archived"}).json()
+    client.delete(f"/habits/{archived['id']}")
+
+    response = client.get("/habits")
+    titles = [h["title"] for h in response.json()]
+    assert titles == ["Kept"]
+
+    response = client.get("/habits", params={"include_archived": True})
+    titles = [h["title"] for h in response.json()]
+    assert set(titles) == {"Kept", "Archived"}
+
+
+def test_restore_archived_habit(client):
+    created = client.post("/habits", json={"title": "Read"}).json()
+    client.delete(f"/habits/{created['id']}")
+
+    response = client.put(f"/habits/{created['id']}", json={"is_archived": False})
+    assert response.status_code == 200
+    assert response.json()["is_archived"] is False
+
+    titles = [h["title"] for h in client.get("/habits").json()]
+    assert titles == ["Read"]
+
+
+def test_archived_habit_logs_and_stats_still_accessible(client):
+    created = client.post("/habits", json={"title": "Read"}).json()
+    client.post(f"/habits/{created['id']}/logs", json={"completed_on": "2026-01-01"})
+    client.delete(f"/habits/{created['id']}")
+
+    logs_response = client.get(f"/habits/{created['id']}/logs")
+    assert logs_response.status_code == 200
+    assert len(logs_response.json()) == 1
+
+    stats_response = client.get(f"/habits/{created['id']}/stats")
+    assert stats_response.status_code == 200
+    assert stats_response.json()["total_completions"] == 1
 
 
 def test_create_habit_log(client):

@@ -24,6 +24,7 @@ class Habit(Base):
     description = Column(String, nullable=True)
     frequency = Column(String, default="daily")  # daily / weekly
     is_completed = Column(Boolean, default=False)
+    is_archived = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="habits")

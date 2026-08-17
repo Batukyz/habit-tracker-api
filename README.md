@@ -126,7 +126,7 @@ tüm endpoint'ler için genel bir üst sınır (dakikada 200 istek) var.
 | GET | `/habits` | Kendi habit'lerini listele (filtre + sayfalama) | Evet |
 | GET | `/habits/{habit_id}` | Tek bir habit'i getir | Evet |
 | PUT | `/habits/{habit_id}` | Habit'i güncelle | Evet |
-| DELETE | `/habits/{habit_id}` | Habit'i sil | Evet |
+| DELETE | `/habits/{habit_id}` | Habit'i arşivle (kalıcı silmez, geçmişi korur) | Evet |
 | POST | `/habits/{habit_id}/logs` | Habit için tamamlama kaydı (check-in) oluştur | Evet |
 | GET | `/habits/{habit_id}/logs` | Habit'in tamamlama geçmişini listele | Evet |
 | DELETE | `/habits/{habit_id}/logs/{log_id}` | Bir tamamlama kaydını sil | Evet |
@@ -145,5 +145,14 @@ Streak, `frequency` alanına göre günlük veya haftalık ardışık periyotlar
 | `frequency` | `daily` veya `weekly` ile filtrele |
 | `is_completed` | `true`/`false` ile filtrele |
 | `search` | Başlıkta geçen metne göre ara (büyük/küçük harf duyarsız) |
+| `include_archived` | `true` ise arşivlenmiş habit'ler de listeye dahil olur (varsayılan `false`) |
 | `skip` | Atlanacak kayıt sayısı (varsayılan 0) |
 | `limit` | Sayfa başına kayıt sayısı (varsayılan 20, en fazla 100) |
+
+## Arşivleme
+
+`DELETE /habits/{habit_id}` habit'i veritabanından silmez, `is_archived=true`
+olarak işaretler — check-in geçmişi, streak ve istatistikler korunur. Arşivlenmiş
+bir habit varsayılan `GET /habits` listesinde görünmez ama tekil olarak
+(`GET /habits/{habit_id}`, loglar, streak, stats) erişilebilir kalır. Geri
+almak için: `PUT /habits/{habit_id}` ile `{"is_archived": false}` gönder.

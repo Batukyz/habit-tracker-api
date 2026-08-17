@@ -52,12 +52,14 @@ class HabitUpdate(BaseModel):
     description: Optional[str] = None
     frequency: Optional[str] = None
     is_completed: Optional[bool] = None
+    is_archived: Optional[bool] = None
 
 
 class HabitOut(HabitBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    is_archived: bool
     created_at: datetime
 
 

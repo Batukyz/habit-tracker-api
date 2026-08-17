@@ -132,12 +132,15 @@ def list_habits(
     frequency: Optional[str] = None,
     is_completed: Optional[bool] = None,
     search: Optional[str] = None,
+    include_archived: bool = False,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.Habit).filter(models.Habit.owner_id == current_user.id)
+    if not include_archived:
+        query = query.filter(models.Habit.is_archived.is_(False))
     if frequency is not None:
         query = query.filter(models.Habit.frequency == frequency)
     if is_completed is not None:
@@ -177,8 +180,9 @@ def delete_habit(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    """Archives the habit rather than deleting it, so its log/streak history is preserved."""
     habit = _get_owned_habit(habit_id, current_user.id, db)
-    db.delete(habit)
+    habit.is_archived = True
     db.commit()
 
 
