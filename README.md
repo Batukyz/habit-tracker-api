@@ -64,15 +64,12 @@ olarak SQLite kullanır — hızlı, sıfır kurulum gerektiren local dev için 
 şart değil; `DATABASE_URL` ortam değişkenini kendin ayarlarsan (örn. yerel bir
 Postgres'e) o da çalışır.
 
-**Not:** Bu geliştirme ortamında Docker CLI kurulu değil, bu yüzden
-`docker compose up` ile gerçek bir Postgres'e karşı migration'ların uçtan uca
-çalıştığını bizzat doğrulayamadım — sadece bağlantı dizesinin ve `psycopg`
-sürücüsünün doğru çözümlendiğini (SQLAlchemy engine oluşturma seviyesinde)
-teyit ettim. İlk `docker compose up --build` çalıştırmanda `alembic upgrade head`
-adımının loglarını kontrol etmen iyi olur; bir sorun çıkarsa muhtemel şüpheli
-nokta, ilk migration'daki `CURRENT_TIMESTAMP`/`CURRENT_DATE` server default
-ifadeleridir (SQLite'tan otomatik üretildiler, Postgres'te de geçerli olmaları
-beklenir ama gerçek ortamda doğrulanmadı).
+Bu geliştirme makinesinde Docker CLI kurulu olmadığı için burada bizzat
+doğrulayamadım — bunun yerine CI'daki `postgres-e2e` job'u gerçek bir Postgres'i
+`docker compose` ile ayağa kaldırıp migration'ları çalıştırıyor ve `/auth/register`
+ile uçtan uca test ediyor. Bu job yeşil, yani Postgres akışı gerçekten doğrulanmış
+durumda (ilk migration'daki `CURRENT_TIMESTAMP`/`CURRENT_DATE` server default
+ifadeleri dahil).
 
 ## CI
 
