@@ -30,6 +30,7 @@ def test_login(anon_client):
     body = response.json()
     assert body["token_type"] == "bearer"
     assert body["access_token"]
+    assert body["refresh_token"]
 
 
 def test_login_wrong_password(anon_client):
@@ -108,3 +109,58 @@ def test_update_me_duplicate_email(make_authed_client):
 
     response = alice.put("/me", json={"email": "bob2@example.com"})
     assert response.status_code == 400
+
+
+def _login(anon_client, email="refresh@example.com", password="testpassword123"):
+    anon_client.post("/auth/register", json={"email": email, "password": password})
+    return anon_client.post(
+        "/auth/login", data={"username": email, "password": password}
+    ).json()
+
+
+def test_refresh_issues_a_new_access_token(anon_client):
+    tokens = _login(anon_client)
+
+    response = anon_client.post("/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["access_token"]
+    assert body["refresh_token"]
+
+    me = anon_client.get("/me", headers={"Authorization": f"Bearer {body['access_token']}"})
+    assert me.status_code == 200
+    assert me.json()["email"] == "refresh@example.com"
+
+
+def test_refresh_rotates_and_invalidates_old_refresh_token(anon_client):
+    tokens = _login(anon_client)
+
+    first = anon_client.post("/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
+    assert first.status_code == 200
+
+    reused = anon_client.post("/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
+    assert reused.status_code == 401
+
+
+def test_refresh_with_invalid_token(anon_client):
+    response = anon_client.post("/auth/refresh", json={"refresh_token": "not-a-real-token"})
+    assert response.status_code == 401
+
+
+def test_logout_revokes_refresh_token(anon_client):
+    tokens = _login(anon_client, email="logout@example.com")
+
+    logout_response = anon_client.post(
+        "/auth/logout", json={"refresh_token": tokens["refresh_token"]}
+    )
+    assert logout_response.status_code == 204
+
+    refresh_response = anon_client.post(
+        "/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
+    )
+    assert refresh_response.status_code == 401
+
+
+def test_logout_with_unknown_token_is_idempotent(anon_client):
+    response = anon_client.post("/auth/logout", json={"refresh_token": "never-existed"})
+    assert response.status_code == 204

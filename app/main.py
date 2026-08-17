@@ -9,7 +9,13 @@ from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 
 from . import models, schemas
-from .auth import create_access_token, get_current_user
+from .auth import (
+    create_access_token,
+    create_refresh_token,
+    get_current_user,
+    revoke_refresh_token,
+    use_refresh_token,
+)
 from .database import get_db
 from .rate_limit import limiter
 from .security import hash_password, verify_password
@@ -60,7 +66,25 @@ def login(
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
     if user is None or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
-    return schemas.Token(access_token=create_access_token(subject=user.email))
+    return schemas.Token(
+        access_token=create_access_token(subject=user.email),
+        refresh_token=create_refresh_token(user_id=user.id, db=db),
+    )
+
+
+@app.post("/auth/refresh", response_model=schemas.Token)
+def refresh(payload: schemas.RefreshRequest, db: Session = Depends(get_db)):
+    user = use_refresh_token(payload.refresh_token, db)
+    revoke_refresh_token(payload.refresh_token, db)
+    return schemas.Token(
+        access_token=create_access_token(subject=user.email),
+        refresh_token=create_refresh_token(user_id=user.id, db=db),
+    )
+
+
+@app.post("/auth/logout", status_code=204)
+def logout(payload: schemas.LogoutRequest, db: Session = Depends(get_db)):
+    revoke_refresh_token(payload.refresh_token, db)
 
 
 @app.get("/me", response_model=schemas.UserOut)

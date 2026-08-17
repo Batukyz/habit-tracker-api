@@ -71,7 +71,7 @@ curl -X POST http://127.0.0.1:8000/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email": "sen@example.com", "password": "en-az-8-karakter"}'
 
-# Giriş (form-encoded, JSON değil)
+# Giriş (form-encoded, JSON değil) — access_token ve refresh_token döner
 curl -X POST http://127.0.0.1:8000/auth/login \
   -d "username=sen@example.com&password=en-az-8-karakter"
 
@@ -80,10 +80,30 @@ curl -X POST http://127.0.0.1:8000/habits \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{"title": "Kitap oku"}'
+
+# access_token suresi dolunca, sifre girmeden yenisini almak icin:
+curl -X POST http://127.0.0.1:8000/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "<refresh_token>"}'
+
+# Cikis yap (refresh token'i gecersiz kilar)
+curl -X POST http://127.0.0.1:8000/auth/logout \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "<refresh_token>"}'
 ```
 
-Token süresi 24 saat. `SECRET_KEY` ortam değişkeni ayarlanmazsa geliştirme amaçlı
-sabit bir anahtar kullanılır — üretimde mutlaka kendi `SECRET_KEY`'ini ayarla.
+`access_token` 30 dakika, `refresh_token` 30 gün geçerli. Her `/auth/refresh`
+çağrısı eski refresh token'ı geçersiz kılıp yenisini döner (rotasyon) — çalınmış
+bir refresh token'ın tekrar kullanılması bu sayede engellenir. `/auth/logout`,
+verilen refresh token'ı kalıcı olarak iptal eder.
+
+**Sınır:** `access_token`'lar stateless JWT olduğu için, çıkış yapıldığında ya da
+refresh token iptal edildiğinde hâlâ süresi dolmamış bir access token bir sonraki
+30 dakika boyunca geçerli kalmaya devam eder — sadece refresh akışı kesilir. Bu,
+kısa access token ömrüyle (30 dk) kabul edilebilir bir risk seviyesine indirgenmiştir.
+
+`SECRET_KEY` ortam değişkeni ayarlanmazsa geliştirme amaçlı sabit bir anahtar
+kullanılır — üretimde mutlaka kendi `SECRET_KEY`'ini ayarla.
 
 ## Rate limiting
 
@@ -97,7 +117,9 @@ tüm endpoint'ler için genel bir üst sınır (dakikada 200 istek) var.
 | --- | --- | --- | --- |
 | GET | `/health` | Servis durum kontrolü | Hayır |
 | POST | `/auth/register` | Yeni kullanıcı kaydı | Hayır |
-| POST | `/auth/login` | Giriş yap, access token al | Hayır |
+| POST | `/auth/login` | Giriş yap, access + refresh token al | Hayır |
+| POST | `/auth/refresh` | Refresh token ile yeni access + refresh token al | Hayır |
+| POST | `/auth/logout` | Refresh token'ı iptal et | Hayır |
 | GET | `/me` | Kendi profilini gör | Evet |
 | PUT | `/me` | E-posta/şifreni güncelle | Evet |
 | POST | `/habits` | Yeni habit oluştur | Evet |
