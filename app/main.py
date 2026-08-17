@@ -1,10 +1,12 @@
 from datetime import date
+from pathlib import Path
 
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
@@ -34,6 +36,7 @@ app = FastAPI(title="Habit Tracker API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(RequestLoggingMiddleware)
+app.mount("/app", StaticFiles(directory=Path(__file__).parent / "static", html=True), name="frontend")
 
 
 @app.exception_handler(Exception)

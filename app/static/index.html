@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Habit Tracker</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --card: #171a21;
+    --border: #2a2e38;
+    --text: #e8eaed;
+    --muted: #9aa1ac;
+    --accent: #6c8cff;
+    --accent-hover: #85a1ff;
+    --danger: #ff6b6b;
+    --success: #4ade80;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 22px; margin: 0 0 24px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input {
+    width: 100%;
+    padding: 10px 12px;
+    background: #0f1115;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: 14px;
+  }
+  input:focus { outline: none; border-color: var(--accent); }
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .btn-primary { background: var(--accent); color: #fff; width: 100%; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost { background: transparent; color: var(--muted); font-weight: 400; font-size: 13px; }
+  .btn-ghost:hover { color: var(--text); }
+  .btn-small { padding: 6px 10px; font-size: 13px; }
+  .btn-check { background: var(--success); color: #08210f; }
+  .btn-archive { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-archive:hover { color: var(--danger); border-color: var(--danger); }
+  .row { display: flex; gap: 8px; }
+  .row input { margin-bottom: 0; }
+  .error { color: var(--danger); font-size: 13px; margin: -6px 0 14px; min-height: 1em; }
+  .toggle { text-align: center; margin-top: 4px; }
+  .habit {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .habit:last-child { border-bottom: none; }
+  .habit-title { font-size: 15px; font-weight: 600; }
+  .habit-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .streak { color: var(--accent); font-weight: 700; }
+  .actions { display: flex; gap: 6px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 24px 0; }
+  #login-view, #app-view { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="login-view">
+    <h1>Habit Tracker</h1>
+    <div class="card">
+      <form id="login-form">
+        <label>E-posta</label>
+        <input type="email" id="login-email" required autocomplete="username">
+        <label>Şifre</label>
+        <input type="password" id="login-password" required autocomplete="current-password">
+        <div class="error" id="login-error"></div>
+        <button type="submit" class="btn-primary">Giriş yap</button>
+      </form>
+      <div class="toggle">
+        <button class="btn-ghost" id="show-register">Hesabın yok mu? Kayıt ol</button>
+      </div>
+    </div>
+
+    <div class="card" id="register-card" style="display:none">
+      <form id="register-form">
+        <label>E-posta</label>
+        <input type="email" id="register-email" required autocomplete="username">
+        <label>Şifre (en az 8 karakter)</label>
+        <input type="password" id="register-password" required minlength="8" autocomplete="new-password">
+        <div class="error" id="register-error"></div>
+        <button type="submit" class="btn-primary">Kayıt ol ve giriş yap</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="app-view">
+    <div class="topbar">
+      <h1>Habit'lerim</h1>
+      <button class="btn-ghost" id="logout-btn">Çıkış yap</button>
+    </div>
+
+    <div class="card">
+      <form id="add-habit-form" class="row">
+        <input type="text" id="new-habit-title" placeholder="Yeni habit (örn. Kitap oku)" required>
+        <button type="submit" class="btn-primary" style="width:auto; white-space:nowrap;">Ekle</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div id="habit-list"></div>
+      <div class="empty" id="empty-state" style="display:none">Henüz habit yok. Yukarıdan ekle.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = "";
+
+function getTokens() {
+  return {
+    access: localStorage.getItem("access_token"),
+    refresh: localStorage.getItem("refresh_token"),
+  };
+}
+function setTokens(access, refresh) {
+  localStorage.setItem("access_token", access);
+  localStorage.setItem("refresh_token", refresh);
+}
+function clearTokens() {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+}
+
+async function apiFetch(path, options = {}) {
+  const { access } = getTokens();
+  options.headers = Object.assign({}, options.headers, {
+    Authorization: `Bearer ${access}`,
+  });
+  let response = await fetch(API + path, options);
+  if (response.status === 401) {
+    const refreshed = await tryRefresh();
+    if (refreshed) {
+      const { access: newAccess } = getTokens();
+      options.headers.Authorization = `Bearer ${newAccess}`;
+      response = await fetch(API + path, options);
+    } else {
+      showLogin();
+      throw new Error("Oturum süresi doldu");
+    }
+  }
+  return response;
+}
+
+async function tryRefresh() {
+  const { refresh } = getTokens();
+  if (!refresh) return false;
+  const response = await fetch(API + "/auth/refresh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refresh }),
+  });
+  if (!response.ok) {
+    clearTokens();
+    return false;
+  }
+  const data = await response.json();
+  setTokens(data.access_token, data.refresh_token);
+  return true;
+}
+
+function showLogin() {
+  clearTokens();
+  document.getElementById("app-view").style.display = "none";
+  document.getElementById("login-view").style.display = "block";
+}
+
+function showApp() {
+  document.getElementById("login-view").style.display = "none";
+  document.getElementById("app-view").style.display = "block";
+  loadHabits();
+}
+
+document.getElementById("show-register").addEventListener("click", () => {
+  const card = document.getElementById("register-card");
+  card.style.display = card.style.display === "none" ? "block" : "none";
+});
+
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("login-email").value;
+  const password = document.getElementById("login-password").value;
+  const errorEl = document.getElementById("login-error");
+  errorEl.textContent = "";
+
+  const body = new URLSearchParams();
+  body.set("username", email);
+  body.set("password", password);
+
+  const response = await fetch(API + "/auth/login", { method: "POST", body });
+  if (!response.ok) {
+    errorEl.textContent = "E-posta veya şifre hatalı.";
+    return;
+  }
+  const data = await response.json();
+  setTokens(data.access_token, data.refresh_token);
+  showApp();
+});
+
+document.getElementById("register-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("register-email").value;
+  const password = document.getElementById("register-password").value;
+  const errorEl = document.getElementById("register-error");
+  errorEl.textContent = "";
+
+  const response = await fetch(API + "/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    errorEl.textContent = data.detail || "Kayıt başarısız oldu.";
+    return;
+  }
+
+  const loginBody = new URLSearchParams();
+  loginBody.set("username", email);
+  loginBody.set("password", password);
+  const loginResponse = await fetch(API + "/auth/login", { method: "POST", body: loginBody });
+  const loginData = await loginResponse.json();
+  setTokens(loginData.access_token, loginData.refresh_token);
+  showApp();
+});
+
+document.getElementById("logout-btn").addEventListener("click", async () => {
+  const { refresh } = getTokens();
+  if (refresh) {
+    await fetch(API + "/auth/logout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refresh }),
+    }).catch(() => {});
+  }
+  showLogin();
+});
+
+document.getElementById("add-habit-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = document.getElementById("new-habit-title");
+  const title = input.value.trim();
+  if (!title) return;
+  await apiFetch("/habits", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+  input.value = "";
+  loadHabits();
+});
+
+async function loadHabits() {
+  const response = await apiFetch("/habits?limit=100");
+  const habits = await response.json();
+  const list = document.getElementById("habit-list");
+  const empty = document.getElementById("empty-state");
+  list.innerHTML = "";
+
+  if (habits.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  for (const habit of habits) {
+    const streakResponse = await apiFetch(`/habits/${habit.id}/streak`);
+    const streak = await streakResponse.json();
+
+    const row = document.createElement("div");
+    row.className = "habit";
+    row.innerHTML = `
+      <div>
+        <div class="habit-title">${escapeHtml(habit.title)}</div>
+        <div class="habit-meta">${habit.frequency === "weekly" ? "Haftalık" : "Günlük"} · <span class="streak">${streak.current_streak} 🔥</span></div>
+      </div>
+      <div class="actions">
+        <button class="btn-check btn-small" data-action="check" data-id="${habit.id}">✓ Bugün</button>
+        <button class="btn-archive btn-small" data-action="archive" data-id="${habit.id}">Arşivle</button>
+      </div>
+    `;
+    list.appendChild(row);
+  }
+
+  list.querySelectorAll("[data-action='check']").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      await apiFetch(`/habits/${btn.dataset.id}/logs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      loadHabits();
+    });
+  });
+  list.querySelectorAll("[data-action='archive']").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      await apiFetch(`/habits/${btn.dataset.id}`, { method: "DELETE" });
+      loadHabits();
+    });
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+(async function init() {
+  const { access } = getTokens();
+  if (!access) {
+    showLogin();
+    return;
+  }
+  const response = await fetch(API + "/me", { headers: { Authorization: `Bearer ${access}` } });
+  if (response.ok) {
+    showApp();
+  } else {
+    const refreshed = await tryRefresh();
+    if (refreshed) showApp();
+    else showLogin();
+  }
+})();
+</script>
+</body>
+</html>

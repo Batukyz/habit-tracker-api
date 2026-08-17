@@ -23,6 +23,21 @@ Sonra sunucuyu başlat:
 uvicorn app.main:app --reload
 ```
 
+## Web arayüzü
+
+Swagger üzerinden token kopyalayıp yapıştırmak yerine, basit bir giriş/kayıt
+ekranı ve habit paneli sunan hafif bir web arayüzü de var:
+
+```
+http://127.0.0.1:8000/app/
+```
+
+Kayıt ol / giriş yap → habit ekle → "✓ Bugün" butonuyla check-in yap → güncel
+streak'i gör → "Arşivle" ile kaldır. Token'lar tarayıcının `localStorage`'ında
+tutulur, süresi dolan access token otomatik yenilenir (refresh akışı arka planda
+çalışır). Saf HTML/CSS/JS — ekstra build aracı veya bağımlılık gerekmez,
+`app/static/index.html` dosyasında tek parça halinde.
+
 ## Veritabanı migration'ları
 
 Şema artık Alembic ile yönetiliyor — `app/models.py` içindeki modeller
