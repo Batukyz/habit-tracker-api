@@ -32,10 +32,10 @@ ekranı ve habit paneli sunan hafif bir web arayüzü de var:
 http://127.0.0.1:8000/app/
 ```
 
-Sağ üstteki 🌙/☀️ butonuyla **soft (açık, sıcak krem tonlu) mod** ve **dark mod**
-arasında geçiş yapabilirsin — tercihin tarayıcında hatırlanır. İkisi de yumuşak
-mavi bir vurgu rengi, yuvarlak köşeler ve nazik geçiş animasyonlarıyla, sert
-kontrastlardan kaçınacak şekilde tasarlandı.
+Sağ üstteki 🌙/☀️ butonuyla **soft (açık, yumuşak mavi-gri tonlu) mod** ve
+**dark mod** arasında geçiş yapabilirsin — tercihin tarayıcında hatırlanır.
+İkisi de yumuşak mavi bir vurgu rengi, yuvarlak köşeler ve nazik geçiş
+animasyonlarıyla, sert kontrastlardan kaçınacak şekilde tasarlandı.
 
 Kayıt ol / giriş yap → habit ekle → "✓ Bugün" butonuyla check-in yap → güncel
 streak'i gör → "Arşivle" ile kaldır. Yeni habit eklerken 🙂 butonuyla ~90
@@ -229,6 +229,18 @@ için genel bir üst sınır (dakikada 200 istek) var.
 | DELETE | `/habits/{habit_id}/logs/{log_id}` | Bir tamamlama kaydını sil | Evet |
 | GET | `/habits/{habit_id}/streak` | Habit'in güncel kesintisiz serisini (streak) hesapla | Evet |
 | GET | `/habits/{habit_id}/stats` | Habit istatistikleri: toplam check-in, güncel/en uzun streak, tamamlanma oranı, (varsa) toplam miktar | Evet |
+| POST | `/events` | Yeni plan/etkinlik oluştur (`title` + `event_date`) | Evet |
+| GET | `/events` | Kendi planlarını listele (`date_from`/`date_to`/`is_done` filtresi, tarihe göre sıralı) | Evet |
+| GET | `/events/{event_id}` | Tek bir planı getir | Evet |
+| PUT | `/events/{event_id}` | Planı güncelle (örn. `is_done: true` ile tamamlandı işaretle) | Evet |
+| DELETE | `/events/{event_id}` | Planı sil | Evet |
+
+`Habit`, tekrar eden bir alışkanlık; `Event` ise "24 Ağustos'ta toplantım var"
+gibi **tek seferlik, belirli bir tarihe bağlı bir plan/görev**. Web arayüzünde
+"Habit'lerim" ekranının üstünde iki bölüm var: **"📅 Bugün yapmam gerekenler"**
+(bugüne ait planlar, işaretleyerek tamamlandı yapabilirsin) ve **"🗓️ Yaklaşan
+planlar"** (bugünden sonraki tüm planlar, tarihleriyle birlikte, buradan yeni
+plan da ekleyebilirsin).
 
 `Habit`'in `tracking_unit` alanı (örn. `"litre"`, `"sayfa"`, `"km"`) ayarlıysa, o
 habit sadece işaretlenen bir şey değil, **miktar takip edilen** bir habit'tir —

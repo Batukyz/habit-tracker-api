@@ -339,3 +339,80 @@ def get_habit_stats(
         ),
         total_amount=total_amount,
     )
+
+
+def _get_owned_event(event_id: int, owner_id: int, db: Session) -> models.Event:
+    event = (
+        db.query(models.Event)
+        .filter(models.Event.id == event_id, models.Event.owner_id == owner_id)
+        .first()
+    )
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return event
+
+
+@app.post("/events", response_model=schemas.EventOut, status_code=201)
+def create_event(
+    event: schemas.EventCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    db_event = models.Event(**event.model_dump(), owner_id=current_user.id)
+    db.add(db_event)
+    db.commit()
+    db.refresh(db_event)
+    return db_event
+
+
+@app.get("/events", response_model=list[schemas.EventOut])
+def list_events(
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    is_done: Optional[bool] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    query = db.query(models.Event).filter(models.Event.owner_id == current_user.id)
+    if date_from is not None:
+        query = query.filter(models.Event.event_date >= date_from)
+    if date_to is not None:
+        query = query.filter(models.Event.event_date <= date_to)
+    if is_done is not None:
+        query = query.filter(models.Event.is_done == is_done)
+    return query.order_by(models.Event.event_date).all()
+
+
+@app.get("/events/{event_id}", response_model=schemas.EventOut)
+def get_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    return _get_owned_event(event_id, current_user.id, db)
+
+
+@app.put("/events/{event_id}", response_model=schemas.EventOut)
+def update_event(
+    event_id: int,
+    update: schemas.EventUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    event = _get_owned_event(event_id, current_user.id, db)
+    for field, value in update.model_dump(exclude_unset=True).items():
+        setattr(event, field, value)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+@app.delete("/events/{event_id}", status_code=204)
+def delete_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    event = _get_owned_event(event_id, current_user.id, db)
+    db.delete(event)
+    db.commit()

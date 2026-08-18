@@ -13,19 +13,19 @@
 </script>
 <style>
   :root {
-    --bg: #f7f5f1;
-    --card: #fffefc;
-    --input-bg: #f1efea;
-    --border: #e5e1d8;
-    --text: #3f3b39;
-    --muted: #8c8378;
-    --accent: #527396;
-    --accent-hover: #46678a;
+    --bg: #e6edf3;
+    --card: #f5f9fb;
+    --input-bg: #dde7ee;
+    --border: #cddae3;
+    --text: #2c3844;
+    --muted: #78899a;
+    --accent: #3f6e90;
+    --accent-hover: #345d7a;
     --on-accent: #ffffff;
-    --danger: #c97a6c;
-    --danger-hover: #b8695c;
-    --success: #93b78f;
-    --on-success: #24391f;
+    --danger: #ad5147;
+    --danger-hover: #96453c;
+    --success: #7bab9f;
+    --on-success: #1f3d36;
   }
   [data-theme="dark"] {
     --bg: #1b1e23;
@@ -144,6 +144,28 @@
   .stat-row:last-child { margin-bottom: 0; }
   .stat-label { color: var(--muted); font-size: 13px; }
   .stat-value { font-weight: 700; font-size: 13px; }
+  .section-title { font-weight: 700; font-size: 14px; margin-bottom: 12px; }
+  .event-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .event-row:last-child { border-bottom: none; }
+  .event-check { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .event-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    accent-color: var(--accent);
+    margin: 0;
+    cursor: pointer;
+  }
+  .event-title { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .event-title.done { text-decoration: line-through; color: var(--muted); }
+  .event-date { font-size: 11px; color: var(--muted); margin-top: 1px; }
   .calendar-header {
     display: flex;
     align-items: center;
@@ -357,6 +379,23 @@
     <div class="topbar">
       <h1>Habit'lerim</h1>
       <button class="btn-ghost" id="logout-btn">Çıkış yap</button>
+    </div>
+
+    <div class="card">
+      <div class="section-title">📅 Bugün yapmam gerekenler</div>
+      <div id="today-events-list"></div>
+      <div class="empty" id="today-events-empty" style="display:none">Bugün için bir planın yok.</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🗓️ Yaklaşan planlar</div>
+      <form id="add-event-form" class="row">
+        <input type="text" id="new-event-title" placeholder="Plan (örn. Toplantı)" required>
+        <input type="date" id="new-event-date" required style="flex:none; width:150px;">
+        <button type="submit" class="btn-primary" style="width:auto; white-space:nowrap; flex:none;">Ekle</button>
+      </form>
+      <div id="upcoming-events-list"></div>
+      <div class="empty" id="upcoming-events-empty" style="display:none">Yaklaşan bir planın yok.</div>
     </div>
 
     <div class="card">
@@ -655,6 +694,8 @@ function showApp() {
   document.getElementById("detail-view").style.display = "none";
   document.getElementById("app-view").style.display = "block";
   loadHabits();
+  loadTodayEvents();
+  loadUpcomingEvents();
 }
 
 document.getElementById("show-register").addEventListener("click", () => {
@@ -916,6 +957,96 @@ async function loadHabits() {
       if (document.getElementById("archived-card").style.display !== "none") loadArchivedHabits();
     });
     list.appendChild(row);
+  }
+}
+
+function todayIsoDate() {
+  return toIsoDate(new Date());
+}
+
+document.getElementById("add-event-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const titleInput = document.getElementById("new-event-title");
+  const dateInput = document.getElementById("new-event-date");
+  const title = titleInput.value.trim();
+  const eventDate = dateInput.value;
+  if (!title || !eventDate) return;
+  await apiFetch("/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, event_date: eventDate }),
+  });
+  titleInput.value = "";
+  dateInput.value = "";
+  loadTodayEvents();
+  loadUpcomingEvents();
+});
+
+function renderEventRow(event, { showDate }) {
+  const row = document.createElement("div");
+  row.className = "event-row";
+  const dateLabel = showDate ? `<div class="event-date">${formatDateTr(event.event_date)}</div>` : "";
+  row.innerHTML = `
+    <div class="event-check">
+      <input type="checkbox" ${event.is_done ? "checked" : ""}>
+      <div>
+        <div class="event-title${event.is_done ? " done" : ""}">${escapeHtml(event.title)}</div>
+        ${dateLabel}
+      </div>
+    </div>
+    <button class="btn-archive btn-small">Sil</button>
+  `;
+  row.querySelector('input[type="checkbox"]').addEventListener("change", async (e) => {
+    await apiFetch(`/events/${event.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_done: e.target.checked }),
+    });
+    loadTodayEvents();
+    loadUpcomingEvents();
+  });
+  row.querySelector(".btn-archive").addEventListener("click", async () => {
+    await apiFetch(`/events/${event.id}`, { method: "DELETE" });
+    loadTodayEvents();
+    loadUpcomingEvents();
+  });
+  return row;
+}
+
+async function loadTodayEvents() {
+  const today = todayIsoDate();
+  const response = await apiFetch(`/events?date_from=${today}&date_to=${today}`);
+  const events = await response.json();
+  const list = document.getElementById("today-events-list");
+  const empty = document.getElementById("today-events-empty");
+  list.innerHTML = "";
+
+  if (events.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  for (const event of events) {
+    list.appendChild(renderEventRow(event, { showDate: false }));
+  }
+}
+
+async function loadUpcomingEvents() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const response = await apiFetch(`/events?date_from=${toIsoDate(tomorrow)}`);
+  const events = await response.json();
+  const list = document.getElementById("upcoming-events-list");
+  const empty = document.getElementById("upcoming-events-empty");
+  list.innerHTML = "";
+
+  if (events.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  for (const event of events) {
+    list.appendChild(renderEventRow(event, { showDate: true }));
   }
 }
 

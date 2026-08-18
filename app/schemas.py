@@ -109,3 +109,24 @@ class HabitStatsOut(BaseModel):
     longest_streak: int
     completion_rate: float
     total_amount: Optional[float] = None
+
+
+class EventCreate(BaseModel):
+    title: str
+    event_date: date
+
+
+class EventUpdate(BaseModel):
+    title: Optional[str] = None
+    event_date: Optional[date] = None
+    is_done: Optional[bool] = None
+
+
+class EventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    event_date: date
+    is_done: bool
+    created_at: datetime

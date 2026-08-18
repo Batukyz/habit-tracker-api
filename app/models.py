@@ -66,3 +66,16 @@ class PasswordResetToken(Base):
     expires_at = Column(DateTime, nullable=False)
     used = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Event(Base):
+    """A one-off dated plan/task (e.g. a meeting on a specific day) - not a recurring habit."""
+
+    __tablename__ = "events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String, nullable=False)
+    event_date = Column(Date, nullable=False)
+    is_done = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
