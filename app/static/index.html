@@ -364,7 +364,8 @@
     <div class="modal-title" id="amount-modal-title"></div>
     <form id="amount-modal-form">
       <label id="amount-modal-label"></label>
-      <input type="number" step="any" inputmode="decimal" id="amount-modal-input" placeholder="0">
+      <input type="number" step="any" min="0" inputmode="decimal" id="amount-modal-input" placeholder="0">
+      <div class="error" id="amount-modal-error"></div>
       <label>Not (opsiyonel)</label>
       <textarea id="amount-modal-note"></textarea>
       <div class="row" style="margin-top: 6px;">
@@ -837,6 +838,8 @@ function askAmount(habit) {
     amountModalInput.value = "";
     amountModalNote.value = "";
     amountModalNote.placeholder = habit.notePlaceholder || NOTE_PLACEHOLDER;
+    const errorEl = document.getElementById("amount-modal-error");
+    errorEl.textContent = "";
 
     function finish(result) {
       amountModalOverlay.style.display = "none";
@@ -849,10 +852,14 @@ function askAmount(habit) {
       e.preventDefault();
       const raw = amountModalInput.value.trim();
       const parsed = raw === "" ? null : parseFloat(raw.replace(",", "."));
+      if (parsed !== null && (isNaN(parsed) || parsed < 0)) {
+        errorEl.textContent = "Geçerli, negatif olmayan bir sayı gir.";
+        return;
+      }
       const noteRaw = amountModalNote.value.trim();
       finish({
         cancelled: false,
-        amount: isNaN(parsed) ? null : parsed,
+        amount: parsed,
         note: noteRaw === "" ? null : noteRaw,
       });
     }

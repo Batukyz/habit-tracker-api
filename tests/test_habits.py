@@ -358,3 +358,18 @@ def test_create_habit_log_without_note_defaults_to_none(client):
     response = client.post(f"/habits/{habit['id']}/logs", json={})
     assert response.status_code == 201
     assert response.json()["note"] is None
+
+
+def test_create_habit_log_rejects_negative_amount(client):
+    habit = client.post("/habits", json={"title": "Kitap oku", "tracking_unit": "sayfa"}).json()
+
+    response = client.post(f"/habits/{habit['id']}/logs", json={"amount": -14})
+    assert response.status_code == 422
+
+
+def test_create_habit_log_allows_zero_amount(client):
+    habit = client.post("/habits", json={"title": "Kitap oku", "tracking_unit": "sayfa"}).json()
+
+    response = client.post(f"/habits/{habit['id']}/logs", json={"amount": 0})
+    assert response.status_code == 201
+    assert response.json()["amount"] == 0

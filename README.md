@@ -219,8 +219,9 @@ için genel bir üst sınır (dakikada 200 istek) var.
 
 `Habit`'in `tracking_unit` alanı (örn. `"litre"`, `"sayfa"`, `"km"`) ayarlıysa, o
 habit sadece işaretlenen bir şey değil, **miktar takip edilen** bir habit'tir —
-`POST .../logs` çağrısına `amount` (sayı) eklenebilir, `stats` de tüm
-zamanların toplam miktarını (`total_amount`) döner. Her check-in kaydına
+`POST .../logs` çağrısına `amount` (negatif olmayan bir sayı — eksi değer `422`
+ile reddedilir) eklenebilir, `stats` de tüm zamanların toplam miktarını
+(`total_amount`) döner. Her check-in kaydına
 ayrıca isteğe bağlı serbest metin bir `note` eklenebilir (örn. "yağ değişimi,
 15.230 km'de yapıldı") — miktar takibi olmayan habit'ler için de kullanılabilir.
 `Habit`'in `category` alanı (örn. `"Sağlık"`, `"Spor & Fitness"`) ile

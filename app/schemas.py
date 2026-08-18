@@ -82,7 +82,7 @@ class HabitOut(HabitBase):
 
 class HabitLogCreate(BaseModel):
     completed_on: Optional[date] = None
-    amount: Optional[float] = None
+    amount: Optional[float] = Field(default=None, ge=0)
     note: Optional[str] = None
 
 
