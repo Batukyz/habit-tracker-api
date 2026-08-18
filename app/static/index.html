@@ -139,6 +139,31 @@
   .library-item:hover { border-color: var(--accent); }
   .library-item .emoji { font-size: 16px; }
   .library-item.added { opacity: 0.45; }
+  .emoji-picker-panel {
+    position: absolute;
+    top: 44px;
+    left: 0;
+    z-index: 10;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    width: 252px;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .emoji-picker-panel button {
+    background: transparent;
+    padding: 6px;
+    font-size: 17px;
+    border-radius: 6px;
+    line-height: 1;
+  }
+  .emoji-picker-panel button:hover { background: var(--border); }
 </style>
 </head>
 <body>
@@ -179,9 +204,11 @@
     </div>
 
     <div class="card">
-      <form id="add-habit-form" class="row">
+      <form id="add-habit-form" class="row" style="position: relative;">
+        <button type="button" class="btn-archive btn-small" id="emoji-picker-btn" style="flex:none;">🙂</button>
         <input type="text" id="new-habit-title" placeholder="Yeni habit (örn. Kitap oku)" required>
         <button type="submit" class="btn-primary" style="width:auto; white-space:nowrap;">Ekle</button>
+        <div class="emoji-picker-panel" id="emoji-picker-panel" style="display:none;"></div>
       </form>
       <div class="toggle">
         <button type="button" class="btn-ghost" id="toggle-library-btn">📚 Habit kütüphanesinden hızlı ekle</button>
@@ -269,6 +296,14 @@ const HABIT_LIBRARY = [
 ];
 
 let currentHabits = [];
+
+const EMOJI_PICKER_LIST = [
+  "📚", "🏃", "💧", "🧘", "🛌", "⏰", "🏋️", "🚶", "🥗", "🚭",
+  "💊", "🧴", "🦷", "📝", "🎯", "💰", "📖", "🗣️", "🎸", "🎨",
+  "🧹", "🌱", "📵", "☕", "🍎", "🚴", "🏊", "🙏", "🧠", "✍️",
+  "🎮", "🎵", "🚗", "🐕", "🌿", "☀️", "🌙", "🔥", "⭐", "✅",
+  "📅", "🚿", "🍳", "🧺", "💡", "🧘‍♂️", "🏆", "❤️",
+];
 
 function getTokens() {
   return {
@@ -420,6 +455,47 @@ document.getElementById("toggle-library-btn").addEventListener("click", () => {
   card.style.display = opening ? "block" : "none";
   if (opening) renderLibrary();
 });
+
+const emojiPickerBtn = document.getElementById("emoji-picker-btn");
+const emojiPickerPanel = document.getElementById("emoji-picker-panel");
+
+function renderEmojiPicker() {
+  emojiPickerPanel.innerHTML = "";
+  for (const emoji of EMOJI_PICKER_LIST) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = emoji;
+    btn.addEventListener("click", () => {
+      insertAtCursor(document.getElementById("new-habit-title"), emoji);
+      emojiPickerPanel.style.display = "none";
+    });
+    emojiPickerPanel.appendChild(btn);
+  }
+}
+
+emojiPickerBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const opening = emojiPickerPanel.style.display === "none";
+  if (opening) renderEmojiPicker();
+  emojiPickerPanel.style.display = opening ? "grid" : "none";
+});
+
+document.addEventListener("click", (e) => {
+  if (emojiPickerPanel.style.display !== "none" &&
+      !emojiPickerPanel.contains(e.target) &&
+      e.target !== emojiPickerBtn) {
+    emojiPickerPanel.style.display = "none";
+  }
+});
+
+function insertAtCursor(input, text) {
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? input.value.length;
+  input.value = input.value.slice(0, start) + text + input.value.slice(end);
+  const newPos = start + text.length;
+  input.focus();
+  input.setSelectionRange(newPos, newPos);
+}
 
 function renderLibrary() {
   const grid = document.getElementById("library-grid");
