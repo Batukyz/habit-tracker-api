@@ -211,6 +211,7 @@ için genel bir üst sınır (dakikada 200 istek) var.
 | GET | `/habits/{habit_id}` | Tek bir habit'i getir | Evet |
 | PUT | `/habits/{habit_id}` | Habit'i güncelle | Evet |
 | DELETE | `/habits/{habit_id}` | Habit'i arşivle (kalıcı silmez, geçmişi korur) | Evet |
+| DELETE | `/habits/{habit_id}/permanent` | Arşivlenmiş bir habit'i kalıcı olarak sil (önce arşivlenmiş olmalı) | Evet |
 | POST | `/habits/{habit_id}/logs` | Habit için tamamlama kaydı (check-in) oluştur, isteğe bağlı `amount` ve `note` ile | Evet |
 | GET | `/habits/{habit_id}/logs` | Habit'in tamamlama geçmişini listele | Evet |
 | DELETE | `/habits/{habit_id}/logs/{log_id}` | Bir tamamlama kaydını sil | Evet |
@@ -243,10 +244,24 @@ Streak, `frequency` alanına göre günlük veya haftalık ardışık periyotlar
 | `skip` | Atlanacak kayıt sayısı (varsayılan 0) |
 | `limit` | Sayfa başına kayıt sayısı (varsayılan 20, en fazla 100) |
 
-## Arşivleme
+## Arşivleme ve kalıcı silme
 
 `DELETE /habits/{habit_id}` habit'i veritabanından silmez, `is_archived=true`
 olarak işaretler — check-in geçmişi, streak ve istatistikler korunur. Arşivlenmiş
 bir habit varsayılan `GET /habits` listesinde görünmez ama tekil olarak
 (`GET /habits/{habit_id}`, loglar, streak, stats) erişilebilir kalır. Geri
-almak için: `PUT /habits/{habit_id}` ile `{"is_archived": false}` gönder.
+almak için: `PUT /habits/{habit_id}` ile `{"is_archived": false}` gönder
+(web arayüzünde: "🗄️ Arşivlenenleri göster" → "Geri Yükle").
+
+Gerçekten ve kalıcı olarak silmek istersen: `DELETE /habits/{habit_id}/permanent`.
+Bu endpoint **sadece habit zaten arşivlenmişse** çalışır (aksi halde `400`
+döner) — yanlışlıkla kalıcı veri kaybını önlemek için önce arşivleme
+zorunludur. Web arayüzünde bu, arşiv listesindeki "Kalıcı Sil" butonuna denk
+gelir ve bir onay istenir.
+
+## Habit'i düzenleme
+
+Web arayüzünde bir habit'in detay ekranında "✏️ Düzenle" butonuyla başlığını,
+kategorisini ve miktar birimini (`tracking_unit`) sonradan değiştirebilirsin —
+habit'i eklerken kategori atamayı unutsan bile daha sonra ekleyebilirsin.
+API tarafında bu `PUT /habits/{habit_id}` ile yapılır.

@@ -233,6 +233,20 @@ def delete_habit(
     db.commit()
 
 
+@app.delete("/habits/{habit_id}/permanent", status_code=204)
+def delete_habit_permanently(
+    habit_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Irreversibly removes an already-archived habit and its logs. Archive first, delete second."""
+    habit = _get_owned_habit(habit_id, current_user.id, db)
+    if not habit.is_archived:
+        raise HTTPException(status_code=400, detail="Habit must be archived before permanent deletion")
+    db.delete(habit)
+    db.commit()
+
+
 @app.post("/habits/{habit_id}/logs", response_model=schemas.HabitLogOut, status_code=201)
 def create_habit_log(
     habit_id: int,

@@ -108,6 +108,42 @@ def test_archived_habit_logs_and_stats_still_accessible(client):
     assert stats_response.json()["total_completions"] == 1
 
 
+def test_permanent_delete_requires_archiving_first(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+
+    response = client.delete(f"/habits/{habit['id']}/permanent")
+    assert response.status_code == 400
+
+    # habit should still exist
+    assert client.get(f"/habits/{habit['id']}").status_code == 200
+
+
+def test_permanent_delete_removes_habit_and_logs(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+    client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-01-01"})
+    client.delete(f"/habits/{habit['id']}")  # archive first
+
+    response = client.delete(f"/habits/{habit['id']}/permanent")
+    assert response.status_code == 204
+
+    assert client.get(f"/habits/{habit['id']}").status_code == 404
+    assert client.get("/habits", params={"include_archived": True}).json() == []
+
+
+def test_permanent_delete_not_found(client):
+    response = client.delete("/habits/999/permanent")
+    assert response.status_code == 404
+
+
+def test_restore_via_put_then_permanent_delete_still_requires_rearchive(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+    client.delete(f"/habits/{habit['id']}")  # archive
+    client.put(f"/habits/{habit['id']}", json={"is_archived": False})  # restore
+
+    response = client.delete(f"/habits/{habit['id']}/permanent")
+    assert response.status_code == 400
+
+
 def test_create_habit_log(client):
     habit = client.post("/habits", json={"title": "Read"}).json()
 

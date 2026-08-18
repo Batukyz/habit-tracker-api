@@ -322,13 +322,24 @@
     <div class="card">
       <div id="habit-list"></div>
       <div class="empty" id="empty-state" style="display:none">Henüz habit yok. Yukarıdan ekle.</div>
+      <div class="toggle" style="margin-top: 10px;">
+        <button type="button" class="btn-ghost" id="toggle-archived-btn">🗄️ Arşivlenenleri göster</button>
+      </div>
+    </div>
+
+    <div class="card" id="archived-card" style="display:none">
+      <div id="archived-list"></div>
+      <div class="empty" id="archived-empty-state" style="display:none">Arşivlenmiş habit yok.</div>
     </div>
   </div>
 
   <div id="detail-view">
     <div class="topbar">
       <button class="btn-ghost" id="detail-back-btn">← Geri</button>
-      <button class="btn-check btn-small" id="detail-check-btn">✓ Bugün</button>
+      <div class="actions">
+        <button class="btn-archive btn-small" id="detail-edit-btn">✏️ Düzenle</button>
+        <button class="btn-check btn-small" id="detail-check-btn">✓ Bugün</button>
+      </div>
     </div>
     <h1 id="detail-title"></h1>
     <span class="category-badge" id="detail-category-badge" style="display:none; margin-top: -14px; margin-bottom: 14px;"></span>
@@ -370,6 +381,26 @@
       <textarea id="amount-modal-note"></textarea>
       <div class="row" style="margin-top: 6px;">
         <button type="button" class="btn-archive" id="amount-modal-cancel" style="flex:1;">İptal</button>
+        <button type="submit" class="btn-primary" style="flex:1;">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-modal-overlay" style="display:none">
+  <div class="modal-card">
+    <div class="modal-title">Habit'i düzenle</div>
+    <form id="edit-modal-form">
+      <label>Başlık</label>
+      <input type="text" id="edit-modal-title" required>
+      <label>Kategori</label>
+      <select id="edit-modal-category">
+        <option value="">Kategori yok</option>
+      </select>
+      <label>Miktar birimi (opsiyonel, örn. litre, sayfa, km)</label>
+      <input type="text" id="edit-modal-unit" placeholder="boş bırak = miktar takibi yok">
+      <div class="row" style="margin-top: 6px;">
+        <button type="button" class="btn-archive" id="edit-modal-cancel" style="flex:1;">İptal</button>
         <button type="submit" class="btn-primary" style="flex:1;">Kaydet</button>
       </div>
     </form>
@@ -797,6 +828,65 @@ async function loadHabits() {
     row.querySelector(".btn-archive").addEventListener("click", async () => {
       await apiFetch(`/habits/${habit.id}`, { method: "DELETE" });
       loadHabits();
+      if (document.getElementById("archived-card").style.display !== "none") loadArchivedHabits();
+    });
+    list.appendChild(row);
+  }
+}
+
+document.getElementById("toggle-archived-btn").addEventListener("click", () => {
+  const card = document.getElementById("archived-card");
+  const opening = card.style.display === "none";
+  card.style.display = opening ? "block" : "none";
+  document.getElementById("toggle-archived-btn").textContent = opening
+    ? "🗄️ Arşivlenenleri gizle"
+    : "🗄️ Arşivlenenleri göster";
+  if (opening) loadArchivedHabits();
+});
+
+async function loadArchivedHabits() {
+  const response = await apiFetch("/habits?include_archived=true&limit=100");
+  const habits = (await response.json()).filter((h) => h.is_archived);
+  const list = document.getElementById("archived-list");
+  const empty = document.getElementById("archived-empty-state");
+  list.innerHTML = "";
+
+  if (habits.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  for (const habit of habits) {
+    const categoryBadge = habit.category
+      ? `<span class="category-badge">${CATEGORY_ICONS[habit.category] || ""} ${escapeHtml(habit.category)}</span>`
+      : "";
+
+    const row = document.createElement("div");
+    row.className = "habit";
+    row.innerHTML = `
+      <div>
+        <div class="habit-title" style="cursor:default;">${escapeHtml(habit.title)}</div>
+        <div class="habit-meta">Arşivlendi${categoryBadge}</div>
+      </div>
+      <div class="actions">
+        <button class="btn-check btn-small">Geri Yükle</button>
+        <button class="btn-archive btn-small">Kalıcı Sil</button>
+      </div>
+    `;
+    row.querySelector(".btn-check").addEventListener("click", async () => {
+      await apiFetch(`/habits/${habit.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_archived: false }),
+      });
+      loadArchivedHabits();
+      loadHabits();
+    });
+    row.querySelector(".btn-archive").addEventListener("click", async () => {
+      if (!confirm(`"${habit.title}" kalıcı olarak silinsin mi? Bu işlem geri alınamaz.`)) return;
+      await apiFetch(`/habits/${habit.id}/permanent`, { method: "DELETE" });
+      loadArchivedHabits();
     });
     list.appendChild(row);
   }
@@ -899,6 +989,71 @@ document.getElementById("calendar-prev-btn").addEventListener("click", () => {
 document.getElementById("calendar-next-btn").addEventListener("click", () => {
   calendarMonth.setMonth(calendarMonth.getMonth() + 1);
   renderCalendar();
+});
+
+const editModalOverlay = document.getElementById("edit-modal-overlay");
+const editModalForm = document.getElementById("edit-modal-form");
+const editModalTitle = document.getElementById("edit-modal-title");
+const editModalCategory = document.getElementById("edit-modal-category");
+const editModalUnit = document.getElementById("edit-modal-unit");
+const editModalCancelBtn = document.getElementById("edit-modal-cancel");
+let editModalCleanup = null;
+
+for (const cat of CATEGORIES) {
+  const opt = document.createElement("option");
+  opt.value = cat;
+  opt.textContent = `${CATEGORY_ICONS[cat] || ""} ${cat}`.trim();
+  editModalCategory.appendChild(opt);
+}
+
+function openEditModal(habit) {
+  editModalTitle.value = habit.title;
+  editModalCategory.value = habit.category || "";
+  editModalUnit.value = habit.tracking_unit || "";
+
+  function finish() {
+    editModalOverlay.style.display = "none";
+    editModalForm.removeEventListener("submit", onSubmit);
+    editModalCancelBtn.removeEventListener("click", onCancel);
+    editModalCleanup = null;
+  }
+  async function onSubmit(e) {
+    e.preventDefault();
+    const title = editModalTitle.value.trim();
+    if (!title) return;
+    await apiFetch(`/habits/${habit.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        category: editModalCategory.value || null,
+        tracking_unit: editModalUnit.value.trim() || null,
+      }),
+    });
+    finish();
+    openDetail(habit.id);
+  }
+  function onCancel() {
+    finish();
+  }
+
+  editModalForm.addEventListener("submit", onSubmit);
+  editModalCancelBtn.addEventListener("click", onCancel);
+  editModalCleanup = onCancel;
+
+  editModalOverlay.style.display = "flex";
+  editModalTitle.focus();
+}
+
+editModalOverlay.addEventListener("click", (e) => {
+  if (e.target === editModalOverlay && editModalCleanup) editModalCleanup();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && editModalCleanup) editModalCleanup();
+});
+
+document.getElementById("detail-edit-btn").addEventListener("click", () => {
+  if (currentDetailHabit) openEditModal(currentDetailHabit);
 });
 
 async function openDetail(habitId) {
