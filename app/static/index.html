@@ -156,6 +156,14 @@
   .calendar-day.filled { background: var(--success); border-color: var(--success); color: #08210f; font-weight: 700; }
   .calendar-day.today { border-color: var(--accent); }
   .note-dot { position: absolute; top: 1px; right: 2px; font-size: 8px; }
+  .note-entry {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .note-entry:last-child { border-bottom: none; }
+  .note-entry-date { font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+  .note-entry-date .amount { color: var(--accent); font-weight: 700; }
+  .note-entry-text { font-size: 14px; white-space: pre-wrap; }
   .calendar-day .amount { font-size: 9px; margin-top: 1px; }
   .library-grid {
     display: grid;
@@ -365,6 +373,11 @@
         <div>Pzt</div><div>Sal</div><div>Çrş</div><div>Prş</div><div>Cum</div><div>Cmt</div><div>Paz</div>
       </div>
       <div class="calendar-grid" id="calendar-grid"></div>
+    </div>
+
+    <div class="card" id="detail-notes-card" style="display:none">
+      <div class="stat-label" style="margin-bottom: 10px;">📝 Notlar</div>
+      <div id="detail-notes-list"></div>
     </div>
   </div>
 
@@ -1096,6 +1109,45 @@ async function openDetail(habitId) {
   }
 
   renderCalendar();
+  renderDetailNotes(habit);
+}
+
+function renderDetailNotes(habit) {
+  const card = document.getElementById("detail-notes-card");
+  const list = document.getElementById("detail-notes-list");
+  list.innerHTML = "";
+
+  const notedLogs = currentDetailLogs
+    .filter((log) => log.note)
+    .sort((a, b) => (a.completed_on < b.completed_on ? 1 : -1));
+
+  if (notedLogs.length === 0) {
+    card.style.display = "none";
+    return;
+  }
+  card.style.display = "block";
+
+  for (const log of notedLogs) {
+    const entry = document.createElement("div");
+    entry.className = "note-entry";
+    const amountText = log.amount !== null && log.amount !== undefined
+      ? ` · <span class="amount">${formatNumber(log.amount)} ${escapeHtml(habit.tracking_unit || "")}</span>`
+      : "";
+    entry.innerHTML = `
+      <div class="note-entry-date">${formatDateTr(log.completed_on)}${amountText}</div>
+      <div class="note-entry-text">${escapeHtml(log.note)}</div>
+    `;
+    list.appendChild(entry);
+  }
+}
+
+function formatDateTr(isoDateStr) {
+  const monthNames = [
+    "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+  ];
+  const [year, month, day] = isoDateStr.split("-").map(Number);
+  return `${day} ${monthNames[month - 1]} ${year}`;
 }
 
 function renderCalendar() {
