@@ -180,6 +180,26 @@
     line-height: 1;
   }
   .emoji-picker-panel button:hover { background: var(--border); }
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    width: 100%;
+    max-width: 320px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+  }
+  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
 </style>
 </head>
 <body>
@@ -275,6 +295,20 @@
 
 </div>
 
+<div class="modal-overlay" id="amount-modal-overlay" style="display:none">
+  <div class="modal-card">
+    <div class="modal-title" id="amount-modal-title"></div>
+    <form id="amount-modal-form">
+      <label id="amount-modal-label"></label>
+      <input type="number" step="any" inputmode="decimal" id="amount-modal-input" placeholder="0">
+      <div class="row" style="margin-top: 6px;">
+        <button type="button" class="btn-archive" id="amount-modal-cancel" style="flex:1;">İptal</button>
+        <button type="submit" class="btn-primary" style="flex:1;">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 const API = "";
 
@@ -309,6 +343,36 @@ const HABIT_LIBRARY = [
   { emoji: "🙏", name: "Şükran günlüğü yaz", unit: null },
   { emoji: "👨‍👩‍👧", name: "Aileyle vakit geçir", unit: "dakika" },
   { emoji: "🧠", name: "Zihin egzersizi yap", unit: null },
+  { emoji: "🛏️", name: "Yatağını topla", unit: null },
+  { emoji: "🚿", name: "Duş al", unit: null },
+  { emoji: "🪥", name: "Diş ipi kullan", unit: null },
+  { emoji: "🌞", name: "Güneş ışığı al", unit: "dakika" },
+  { emoji: "💤", name: "Uyku süresine dikkat et", unit: "saat" },
+  { emoji: "🧘‍♂️", name: "Nefes egzersizi yap", unit: "dakika" },
+  { emoji: "🤸", name: "Esneme/germe hareketleri yap", unit: "dakika" },
+  { emoji: "🥊", name: "Dövüş sporu yap", unit: "dakika" },
+  { emoji: "🧗", name: "Tırmanış yap", unit: "dakika" },
+  { emoji: "🎬", name: "Film/belgesel izle", unit: "dakika" },
+  { emoji: "🎤", name: "Şarkı söyle / prova yap", unit: "dakika" },
+  { emoji: "🎭", name: "Sahne sanatı pratiği yap", unit: "dakika" },
+  { emoji: "🖌️", name: "El işi/zanaat yap", unit: "dakika" },
+  { emoji: "📸", name: "Anı fotoğrafı çek", unit: null },
+  { emoji: "🗺️", name: "Yeni bir yer keşfet", unit: null },
+  { emoji: "🪴", name: "Yeni bitki dik", unit: null },
+  { emoji: "🐱", name: "Evcil hayvanınla ilgilen", unit: "dakika" },
+  { emoji: "🦋", name: "Doğada vakit geçir", unit: "dakika" },
+  { emoji: "🍵", name: "Bitki çayı iç", unit: "bardak" },
+  { emoji: "🧃", name: "Şekerli içecekten kaçın", unit: null },
+  { emoji: "🥦", name: "Sebzeli yemek pişir", unit: null },
+  { emoji: "🩺", name: "Sağlık kontrolü yaptır", unit: null },
+  { emoji: "🧊", name: "Soğuk duş al", unit: null },
+  { emoji: "💻", name: "Yeni bir beceri öğren", unit: "dakika" },
+  { emoji: "🧾", name: "Bütçeni/faturalarını kontrol et", unit: null },
+  { emoji: "📞", name: "Sevdiğin biriyle iletişim kur", unit: null },
+  { emoji: "🕯️", name: "Kendine zaman ayır", unit: "dakika" },
+  { emoji: "🧵", name: "Dikiş/örgü yap", unit: "dakika" },
+  { emoji: "🚗", name: "Araç bakımı kontrol et", unit: null },
+  { emoji: "🧦", name: "Dolabını/eşyalarını düzenle", unit: null },
 ];
 
 let currentHabits = [];
@@ -319,6 +383,10 @@ const EMOJI_PICKER_LIST = [
   "🧹", "🌱", "📵", "☕", "🍎", "🚴", "🏊", "🙏", "🧠", "✍️",
   "🎮", "🎵", "🚗", "🐕", "🌿", "☀️", "🌙", "🔥", "⭐", "✅",
   "📅", "🚿", "🍳", "🧺", "💡", "🧘‍♂️", "🏆", "❤️",
+  "🛏️", "🪥", "🌞", "💤", "🤸", "🥊", "🧗", "🎬", "🎤", "🎭",
+  "🖌️", "📸", "🗺️", "🪴", "🐱", "🦋", "🍵", "🧃", "🥦", "🩺",
+  "🧊", "💻", "🧾", "📞", "🕯️", "🧵", "🧦", "🐶", "🐈", "🌸",
+  "🍀", "🌈", "🥑", "🧁", "🍕", "🚀", "🛠️", "📈", "🧩", "🎁",
 ];
 
 function getTokens() {
@@ -595,10 +663,9 @@ async function loadHabits() {
 async function checkInHabit(habit) {
   let amount = null;
   if (habit.tracking_unit) {
-    const input = prompt(`${habit.title}\nKaç ${habit.tracking_unit}?`, "");
-    if (input === null) return; // cancelled
-    const parsed = parseFloat(input.replace(",", "."));
-    if (!isNaN(parsed)) amount = parsed;
+    const result = await askAmount(habit);
+    if (result.cancelled) return;
+    amount = result.amount;
   }
   await apiFetch(`/habits/${habit.id}/logs`, {
     method: "POST",
@@ -612,6 +679,51 @@ async function checkInHabit(habit) {
     loadHabits();
   }
 }
+
+const amountModalOverlay = document.getElementById("amount-modal-overlay");
+const amountModalForm = document.getElementById("amount-modal-form");
+const amountModalInput = document.getElementById("amount-modal-input");
+const amountModalCancelBtn = document.getElementById("amount-modal-cancel");
+let amountModalCleanup = null;
+
+function askAmount(habit) {
+  return new Promise((resolve) => {
+    document.getElementById("amount-modal-title").textContent = habit.title;
+    document.getElementById("amount-modal-label").textContent = `Kaç ${habit.tracking_unit}?`;
+    amountModalInput.value = "";
+
+    function finish(result) {
+      amountModalOverlay.style.display = "none";
+      amountModalForm.removeEventListener("submit", onSubmit);
+      amountModalCancelBtn.removeEventListener("click", onCancel);
+      amountModalCleanup = null;
+      resolve(result);
+    }
+    function onSubmit(e) {
+      e.preventDefault();
+      const raw = amountModalInput.value.trim();
+      const parsed = raw === "" ? null : parseFloat(raw.replace(",", "."));
+      finish({ cancelled: false, amount: isNaN(parsed) ? null : parsed });
+    }
+    function onCancel() {
+      finish({ cancelled: true, amount: null });
+    }
+
+    amountModalForm.addEventListener("submit", onSubmit);
+    amountModalCancelBtn.addEventListener("click", onCancel);
+    amountModalCleanup = onCancel;
+
+    amountModalOverlay.style.display = "flex";
+    amountModalInput.focus();
+  });
+}
+
+amountModalOverlay.addEventListener("click", (e) => {
+  if (e.target === amountModalOverlay && amountModalCleanup) amountModalCleanup();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && amountModalCleanup) amountModalCleanup();
+});
 
 let currentDetailId = null;
 let currentDetailHabit = null;

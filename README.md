@@ -33,19 +33,21 @@ http://127.0.0.1:8000/app/
 ```
 
 Kayıt ol / giriş yap → habit ekle → "✓ Bugün" butonuyla check-in yap → güncel
-streak'i gör → "Arşivle" ile kaldır. Yeni habit eklerken 🙂 butonuyla emoji
-seçebilirsin, ya da "📚 Habit kütüphanesinden hızlı ekle" ile her biri kendi
-emojisi ve (varsa) birimiyle eşleşmiş 30 klasik habit'ten tek tıkla ekleyebilirsin
-— zaten eklenmiş olanlar otomatik soluklaşıp devre dışı kalır.
+streak'i gör → "Arşivle" ile kaldır. Yeni habit eklerken 🙂 butonuyla ~90
+emojilik bir panelden seçim yapabilirsin, ya da "📚 Habit kütüphanesinden
+hızlı ekle" ile her biri kendi emojisi ve (varsa) birimiyle eşleşmiş 60
+klasik habit'ten tek tıkla ekleyebilirsin — zaten eklenmiş olanlar otomatik
+soluklaşıp devre dışı kalır.
 
 Bir habit'in başlığına tıklayınca, o habit'in ay ay gezilebilen bir takvim
 görünümüyle (‹ Ocak, 2026 › tarzı, ok tuşlarıyla önceki/sonraki aya geçilebilir)
 tüm geçmişini, güncel/en uzun serisini ve tamamlanma oranını gösteren bir detay
 ekranı açılır. **Miktar takibi olan habit'ler** (kütüphaneden "Su iç", "Kitap oku"
 gibi birimli eklenenler, ya da manuel oluşturup `tracking_unit` alanı API
-üzerinden ayarlananlar) için "✓ Bugün" butonuna basınca ne kadar yapıldığı
-sorulur (örn. "Kaç litre?") — takvimde o günün hücresinde miktar da görünür,
-detay ekranında "Toplam litre" gibi bir satır eklenir.
+üzerinden ayarlananlar) için "✓ Bugün" butonuna basınca, tarayıcının çirkin
+`prompt()` kutusu yerine uygulamanın kendi temasına uyan bir pencerede ne kadar
+yapıldığı sorulur (örn. "Kaç litre?") — takvimde o günün hücresinde miktar da
+görünür, detay ekranında "Toplam litre" gibi bir satır eklenir.
 
 Token'lar tarayıcının `localStorage`'ında tutulur, süresi dolan access token
 otomatik yenilenir (refresh akışı arka planda çalışır). Saf HTML/CSS/JS —
