@@ -4,17 +4,43 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Habit Tracker</title>
+<script>
+  (function () {
+    if (localStorage.getItem("theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  })();
+</script>
 <style>
   :root {
-    --bg: #0f1115;
-    --card: #171a21;
-    --border: #2a2e38;
-    --text: #e8eaed;
-    --muted: #9aa1ac;
-    --accent: #6c8cff;
-    --accent-hover: #85a1ff;
-    --danger: #ff6b6b;
-    --success: #4ade80;
+    --bg: #f7f5f1;
+    --card: #fffefc;
+    --input-bg: #f1efea;
+    --border: #e5e1d8;
+    --text: #3f3b39;
+    --muted: #8c8378;
+    --accent: #527396;
+    --accent-hover: #46678a;
+    --on-accent: #ffffff;
+    --danger: #c97a6c;
+    --danger-hover: #b8695c;
+    --success: #93b78f;
+    --on-success: #24391f;
+  }
+  [data-theme="dark"] {
+    --bg: #1b1e23;
+    --card: #242830;
+    --input-bg: #1f232a;
+    --border: #333944;
+    --text: #e7e5e0;
+    --muted: #9ca0a8;
+    --accent: #7ea6d6;
+    --accent-hover: #91b4de;
+    --on-accent: #15181c;
+    --danger: #e2998a;
+    --danger-hover: #eaac9f;
+    --success: #9bc9a0;
+    --on-success: #16281a;
   }
   * { box-sizing: border-box; }
   body {
@@ -23,69 +49,76 @@
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
   .wrap { max-width: 480px; margin: 0 auto; padding: 32px 20px 80px; }
-  h1 { font-size: 22px; margin: 0 0 24px; }
+  h1 { font-size: 22px; font-weight: 700; margin: 0 0 24px; letter-spacing: -0.01em; }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 18px;
     padding: 20px;
     margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
   }
   label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
   input {
     width: 100%;
     padding: 10px 12px;
-    background: #0f1115;
+    background: var(--input-bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--text);
     font-size: 14px;
     margin-bottom: 14px;
+    transition: border-color 0.15s ease;
   }
   input:focus { outline: none; border-color: var(--accent); }
   select {
     width: 100%;
     padding: 10px 12px;
-    background: #0f1115;
+    background: var(--input-bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--text);
     font-size: 13px;
     margin-bottom: 14px;
+    transition: border-color 0.15s ease;
   }
   select:focus { outline: none; border-color: var(--accent); }
   textarea {
     width: 100%;
     padding: 10px 12px;
-    background: #0f1115;
+    background: var(--input-bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--text);
     font-size: 14px;
     margin-bottom: 14px;
     font-family: inherit;
     resize: vertical;
     min-height: 60px;
+    transition: border-color 0.15s ease;
   }
   textarea:focus { outline: none; border-color: var(--accent); }
   button {
     cursor: pointer;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 10px 16px;
     font-size: 14px;
     font-weight: 600;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
   }
-  .btn-primary { background: var(--accent); color: #fff; width: 100%; }
+  .btn-primary { background: var(--accent); color: var(--on-accent); width: 100%; }
   .btn-primary:hover { background: var(--accent-hover); }
   .btn-ghost { background: transparent; color: var(--muted); font-weight: 400; font-size: 13px; }
   .btn-ghost:hover { color: var(--text); }
   .btn-small { padding: 6px 10px; font-size: 13px; }
-  .btn-check { background: var(--success); color: #08210f; }
+  .btn-check { background: var(--success); color: var(--on-success); }
+  .btn-check:hover { background: var(--accent-hover); color: var(--on-accent); }
   .btn-archive { background: transparent; border: 1px solid var(--border); color: var(--muted); }
-  .btn-archive:hover { color: var(--danger); border-color: var(--danger); }
+  .btn-archive:hover { color: var(--danger-hover); border-color: var(--danger); }
   .row { display: flex; gap: 8px; }
   .row input { margin-bottom: 0; }
   .error { color: var(--danger); font-size: 13px; margin: -6px 0 14px; min-height: 1em; }
@@ -105,8 +138,8 @@
   .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
   .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 24px 0; }
   #login-view, #app-view, #detail-view { display: none; }
-  .habit-title { cursor: pointer; }
-  .habit-title:hover { color: var(--accent); }
+  .habit-title { cursor: pointer; transition: color 0.15s ease; }
+  .habit-title:hover { color: var(--accent-hover); }
   .stat-row { display: flex; justify-content: space-between; margin-bottom: 12px; }
   .stat-row:last-child { margin-bottom: 0; }
   .stat-label { color: var(--muted); font-size: 13px; }
@@ -147,13 +180,14 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
-    background: #0f1115;
+    border-radius: 10px;
+    background: var(--input-bg);
     border: 1px solid var(--border);
+    transition: background-color 0.15s ease;
     font-size: 12px;
   }
   .calendar-day.empty { background: transparent; border: none; }
-  .calendar-day.filled { background: var(--success); border-color: var(--success); color: #08210f; font-weight: 700; }
+  .calendar-day.filled { background: var(--success); border-color: var(--success); color: var(--on-success); font-weight: 700; }
   .calendar-day.today { border-color: var(--accent); }
   .note-dot { position: absolute; top: 1px; right: 2px; font-size: 8px; }
   .note-entry {
@@ -177,15 +211,16 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #0f1115;
+    background: var(--input-bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 8px 10px;
     font-size: 13px;
     font-weight: 400;
     color: var(--text);
     text-align: left;
     width: 100%;
+    transition: border-color 0.15s ease;
   }
   .library-item:hover { border-color: var(--accent); }
   .library-item .emoji { font-size: 16px; }
@@ -200,7 +235,7 @@
   }
   .category-chip {
     flex: none;
-    background: #0f1115;
+    background: var(--input-bg);
     border: 1px solid var(--border);
     color: var(--muted);
     padding: 6px 12px;
@@ -208,13 +243,14 @@
     font-weight: 500;
     white-space: nowrap;
     border-radius: 999px;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
-  .category-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .category-chip.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   .category-badge {
     display: inline-block;
     font-size: 11px;
     color: var(--muted);
-    background: #0f1115;
+    background: var(--input-bg);
     border: 1px solid var(--border);
     border-radius: 999px;
     padding: 1px 8px;
@@ -227,9 +263,9 @@
     z-index: 10;
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 14px;
     padding: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 2px;
@@ -241,14 +277,15 @@
     background: transparent;
     padding: 6px;
     font-size: 17px;
-    border-radius: 6px;
+    border-radius: 8px;
     line-height: 1;
+    transition: background-color 0.15s ease;
   }
-  .emoji-picker-panel button:hover { background: var(--border); }
+  .emoji-picker-panel button:hover { background: var(--input-bg); }
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0, 0, 0, 0.35);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -258,16 +295,34 @@
   .modal-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 18px;
     padding: 22px;
     width: 100%;
     max-width: 320px;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
   }
   .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+  .theme-toggle-btn {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 50;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
 </style>
 </head>
 <body>
+<button type="button" class="theme-toggle-btn" id="theme-toggle-btn" title="Temayı değiştir">🌙</button>
 <div class="wrap">
 
   <div id="login-view">
@@ -422,6 +477,23 @@
 
 <script>
 const API = "";
+
+const themeToggleBtn = document.getElementById("theme-toggle-btn");
+function applyTheme(theme) {
+  if (theme === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
+    themeToggleBtn.textContent = "☀️";
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+    themeToggleBtn.textContent = "🌙";
+  }
+  localStorage.setItem("theme", theme);
+}
+applyTheme(localStorage.getItem("theme") === "dark" ? "dark" : "soft");
+themeToggleBtn.addEventListener("click", () => {
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  applyTheme(isDark ? "soft" : "dark");
+});
 
 const CATEGORIES = [
   "Sağlık", "Spor & Fitness", "Zihin & Ruh Sağlığı", "Kişisel Bakım", "Üretkenlik",

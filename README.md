@@ -32,6 +32,11 @@ ekranı ve habit paneli sunan hafif bir web arayüzü de var:
 http://127.0.0.1:8000/app/
 ```
 
+Sağ üstteki 🌙/☀️ butonuyla **soft (açık, sıcak krem tonlu) mod** ve **dark mod**
+arasında geçiş yapabilirsin — tercihin tarayıcında hatırlanır. İkisi de yumuşak
+mavi bir vurgu rengi, yuvarlak köşeler ve nazik geçiş animasyonlarıyla, sert
+kontrastlardan kaçınacak şekilde tasarlandı.
+
 Kayıt ol / giriş yap → habit ekle → "✓ Bugün" butonuyla check-in yap → güncel
 streak'i gör → "Arşivle" ile kaldır. Yeni habit eklerken 🙂 butonuyla ~90
 emojilik bir panelden seçim yapabilir, bir **kategori** seçebilirsin (Sağlık,
@@ -50,7 +55,14 @@ basınca, tarayıcının çirkin `prompt()` kutusu yerine uygulamanın kendi tem
 uyan bir pencerede hem ne kadar yapıldığı (örn. "Kaç km?") hem de isteğe bağlı
 bir **not** sorulur (örn. "Yağ değişimi, lastik rotasyonu") — takvimde o günün
 hücresinde miktar ve not ikonu görünür (üzerine gelince notu okuyabilirsin),
-detay ekranında "Toplam km" gibi bir satır eklenir.
+detay ekranında "Toplam km" gibi bir satır eklenir. Ayrıca notu olan tüm
+check-in'ler, takvimin altında tarih + miktar + not metniyle okunaklı bir
+liste halinde de gösterilir — sadece hover'a güvenmen gerekmez.
+
+Bir habit'in detayında "✏️ Düzenle" ile başlığını/kategorisini/miktar birimini
+sonradan değiştirebilir; ana ekrandaki "🗄️ Arşivlenenleri göster" panelinden
+arşivlediğin habitleri görüp "Geri Yükle" ya da (onay isteyen) "Kalıcı Sil"
+ile yönetebilirsin.
 
 Token'lar tarayıcının `localStorage`'ında tutulur, süresi dolan access token
 otomatik yenilenir (refresh akışı arka planda çalışır). Saf HTML/CSS/JS —
