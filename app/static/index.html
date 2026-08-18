@@ -45,6 +45,31 @@
     margin-bottom: 14px;
   }
   input:focus { outline: none; border-color: var(--accent); }
+  select {
+    width: 100%;
+    padding: 10px 12px;
+    background: #0f1115;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+  select:focus { outline: none; border-color: var(--accent); }
+  textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: #0f1115;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: 14px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 60px;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
   button {
     cursor: pointer;
     border: none;
@@ -116,6 +141,7 @@
     gap: 4px;
   }
   .calendar-day {
+    position: relative;
     aspect-ratio: 1;
     display: flex;
     flex-direction: column;
@@ -129,6 +155,7 @@
   .calendar-day.empty { background: transparent; border: none; }
   .calendar-day.filled { background: var(--success); border-color: var(--success); color: #08210f; font-weight: 700; }
   .calendar-day.today { border-color: var(--accent); }
+  .note-dot { position: absolute; top: 1px; right: 2px; font-size: 8px; }
   .calendar-day .amount { font-size: 9px; margin-top: 1px; }
   .library-grid {
     display: grid;
@@ -155,6 +182,36 @@
   .library-item:hover { border-color: var(--accent); }
   .library-item .emoji { font-size: 16px; }
   .library-item.added { opacity: 0.45; }
+  .category-chips {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .category-chip {
+    flex: none;
+    background: #0f1115;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    border-radius: 999px;
+  }
+  .category-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .category-badge {
+    display: inline-block;
+    font-size: 11px;
+    color: var(--muted);
+    background: #0f1115;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 1px 8px;
+    margin-left: 6px;
+  }
   .emoji-picker-panel {
     position: absolute;
     top: 44px;
@@ -240,10 +297,15 @@
     </div>
 
     <div class="card">
-      <form id="add-habit-form" class="row" style="position: relative;">
-        <button type="button" class="btn-archive btn-small" id="emoji-picker-btn" style="flex:none;">🙂</button>
-        <input type="text" id="new-habit-title" placeholder="Yeni habit (örn. Kitap oku)" required>
-        <button type="submit" class="btn-primary" style="width:auto; white-space:nowrap;">Ekle</button>
+      <form id="add-habit-form" style="position: relative;">
+        <div class="row">
+          <button type="button" class="btn-archive btn-small" id="emoji-picker-btn" style="flex:none;">🙂</button>
+          <input type="text" id="new-habit-title" placeholder="Yeni habit (örn. Kitap oku)" required>
+          <button type="submit" class="btn-primary" style="width:auto; white-space:nowrap; flex:none;">Ekle</button>
+        </div>
+        <select id="new-habit-category" style="margin-top: 8px; margin-bottom: 0;">
+          <option value="">Kategori seç (opsiyonel)</option>
+        </select>
         <div class="emoji-picker-panel" id="emoji-picker-panel" style="display:none;"></div>
       </form>
       <div class="toggle">
@@ -252,6 +314,7 @@
     </div>
 
     <div class="card" id="library-card" style="display:none">
+      <div class="category-chips" id="library-category-chips"></div>
       <div class="library-grid" id="library-grid"></div>
       <div class="error" id="library-message" style="color: var(--muted); margin-top: 10px;"></div>
     </div>
@@ -268,6 +331,7 @@
       <button class="btn-check btn-small" id="detail-check-btn">✓ Bugün</button>
     </div>
     <h1 id="detail-title"></h1>
+    <span class="category-badge" id="detail-category-badge" style="display:none; margin-top: -14px; margin-bottom: 14px;"></span>
 
     <div class="card">
       <div class="stat-row"><span class="stat-label">Güncel seri</span><span class="stat-value" id="detail-current-streak"></span></div>
@@ -301,6 +365,8 @@
     <form id="amount-modal-form">
       <label id="amount-modal-label"></label>
       <input type="number" step="any" inputmode="decimal" id="amount-modal-input" placeholder="0">
+      <label>Not (opsiyonel)</label>
+      <textarea id="amount-modal-note"></textarea>
       <div class="row" style="margin-top: 6px;">
         <button type="button" class="btn-archive" id="amount-modal-cancel" style="flex:1;">İptal</button>
         <button type="submit" class="btn-primary" style="flex:1;">Kaydet</button>
@@ -312,67 +378,87 @@
 <script>
 const API = "";
 
+const CATEGORIES = [
+  "Sağlık", "Spor & Fitness", "Zihin & Ruh Sağlığı", "Kişisel Bakım", "Üretkenlik",
+  "Finans", "Öğrenme & Gelişim", "Hobi & Yaratıcılık", "Ev & Düzen", "Sosyal & İlişkiler",
+];
+
+const CATEGORY_ICONS = {
+  "Sağlık": "🩺",
+  "Spor & Fitness": "💪",
+  "Zihin & Ruh Sağlığı": "🧠",
+  "Kişisel Bakım": "🧴",
+  "Üretkenlik": "⚡",
+  "Finans": "💰",
+  "Öğrenme & Gelişim": "📚",
+  "Hobi & Yaratıcılık": "🎨",
+  "Ev & Düzen": "🏠",
+  "Sosyal & İlişkiler": "👥",
+};
+
+const NOTE_PLACEHOLDER = "İsteğe bağlı not... (örn. hangi bakım, ne yapıldı, detaylar)";
+
 const HABIT_LIBRARY = [
-  { emoji: "📚", name: "Kitap oku", unit: "sayfa" },
-  { emoji: "🏃", name: "Koşuya çık", unit: "km" },
-  { emoji: "💧", name: "Su iç", unit: "litre" },
-  { emoji: "🧘", name: "Meditasyon yap", unit: "dakika" },
-  { emoji: "🛌", name: "Erken yat", unit: null },
-  { emoji: "⏰", name: "Erken kalk", unit: null },
-  { emoji: "🏋️", name: "Spor yap", unit: "dakika" },
-  { emoji: "🚶", name: "Yürüyüş yap", unit: "dakika" },
-  { emoji: "🥗", name: "Sağlıklı beslen", unit: null },
-  { emoji: "🚭", name: "Sigara içme", unit: null },
-  { emoji: "💊", name: "Vitamin al", unit: null },
-  { emoji: "🧴", name: "Cilt bakımı yap", unit: null },
-  { emoji: "🦷", name: "Diş fırçala", unit: null },
-  { emoji: "📝", name: "Günlük tut", unit: null },
-  { emoji: "🎯", name: "Hedeflerini gözden geçir", unit: null },
-  { emoji: "💰", name: "Para biriktir", unit: "TL" },
-  { emoji: "📖", name: "Ders çalış", unit: "dakika" },
-  { emoji: "🗣️", name: "Dil pratiği yap", unit: "dakika" },
-  { emoji: "🎸", name: "Enstrüman çal", unit: "dakika" },
-  { emoji: "🎨", name: "Resim/çizim yap", unit: null },
-  { emoji: "🧹", name: "Ev temizliği yap", unit: null },
-  { emoji: "🌱", name: "Bitkileri sula", unit: null },
-  { emoji: "📵", name: "Telefon süresini azalt", unit: null },
-  { emoji: "☕", name: "Kafeini azalt", unit: null },
-  { emoji: "🍎", name: "Meyve/sebze ye", unit: "porsiyon" },
-  { emoji: "🚴", name: "Bisiklete bin", unit: "km" },
-  { emoji: "🏊", name: "Yüzme yap", unit: "dakika" },
-  { emoji: "🙏", name: "Şükran günlüğü yaz", unit: null },
-  { emoji: "👨‍👩‍👧", name: "Aileyle vakit geçir", unit: "dakika" },
-  { emoji: "🧠", name: "Zihin egzersizi yap", unit: null },
-  { emoji: "🛏️", name: "Yatağını topla", unit: null },
-  { emoji: "🚿", name: "Duş al", unit: null },
-  { emoji: "🪥", name: "Diş ipi kullan", unit: null },
-  { emoji: "🌞", name: "Güneş ışığı al", unit: "dakika" },
-  { emoji: "💤", name: "Uyku süresine dikkat et", unit: "saat" },
-  { emoji: "🧘‍♂️", name: "Nefes egzersizi yap", unit: "dakika" },
-  { emoji: "🤸", name: "Esneme/germe hareketleri yap", unit: "dakika" },
-  { emoji: "🥊", name: "Dövüş sporu yap", unit: "dakika" },
-  { emoji: "🧗", name: "Tırmanış yap", unit: "dakika" },
-  { emoji: "🎬", name: "Film/belgesel izle", unit: "dakika" },
-  { emoji: "🎤", name: "Şarkı söyle / prova yap", unit: "dakika" },
-  { emoji: "🎭", name: "Sahne sanatı pratiği yap", unit: "dakika" },
-  { emoji: "🖌️", name: "El işi/zanaat yap", unit: "dakika" },
-  { emoji: "📸", name: "Anı fotoğrafı çek", unit: null },
-  { emoji: "🗺️", name: "Yeni bir yer keşfet", unit: null },
-  { emoji: "🪴", name: "Yeni bitki dik", unit: null },
-  { emoji: "🐱", name: "Evcil hayvanınla ilgilen", unit: "dakika" },
-  { emoji: "🦋", name: "Doğada vakit geçir", unit: "dakika" },
-  { emoji: "🍵", name: "Bitki çayı iç", unit: "bardak" },
-  { emoji: "🧃", name: "Şekerli içecekten kaçın", unit: null },
-  { emoji: "🥦", name: "Sebzeli yemek pişir", unit: null },
-  { emoji: "🩺", name: "Sağlık kontrolü yaptır", unit: null },
-  { emoji: "🧊", name: "Soğuk duş al", unit: null },
-  { emoji: "💻", name: "Yeni bir beceri öğren", unit: "dakika" },
-  { emoji: "🧾", name: "Bütçeni/faturalarını kontrol et", unit: null },
-  { emoji: "📞", name: "Sevdiğin biriyle iletişim kur", unit: null },
-  { emoji: "🕯️", name: "Kendine zaman ayır", unit: "dakika" },
-  { emoji: "🧵", name: "Dikiş/örgü yap", unit: "dakika" },
-  { emoji: "🚗", name: "Araç bakımı kontrol et", unit: null },
-  { emoji: "🧦", name: "Dolabını/eşyalarını düzenle", unit: null },
+  { emoji: "📚", name: "Kitap oku", unit: "sayfa", category: "Öğrenme & Gelişim" },
+  { emoji: "🏃", name: "Koşuya çık", unit: "km", category: "Spor & Fitness" },
+  { emoji: "💧", name: "Su iç", unit: "litre", category: "Sağlık" },
+  { emoji: "🧘", name: "Meditasyon yap", unit: "dakika", category: "Zihin & Ruh Sağlığı" },
+  { emoji: "🛌", name: "Erken yat", unit: null, category: "Sağlık" },
+  { emoji: "⏰", name: "Erken kalk", unit: null, category: "Üretkenlik" },
+  { emoji: "🏋️", name: "Spor yap", unit: "dakika", category: "Spor & Fitness" },
+  { emoji: "🚶", name: "Yürüyüş yap", unit: "dakika", category: "Spor & Fitness" },
+  { emoji: "🥗", name: "Sağlıklı beslen", unit: null, category: "Sağlık" },
+  { emoji: "🚭", name: "Sigara içme", unit: null, category: "Sağlık" },
+  { emoji: "💊", name: "Vitamin al", unit: null, category: "Sağlık" },
+  { emoji: "🧴", name: "Cilt bakımı yap", unit: null, category: "Kişisel Bakım" },
+  { emoji: "🦷", name: "Diş fırçala", unit: null, category: "Kişisel Bakım" },
+  { emoji: "📝", name: "Günlük tut", unit: null, category: "Zihin & Ruh Sağlığı" },
+  { emoji: "🎯", name: "Hedeflerini gözden geçir", unit: null, category: "Üretkenlik" },
+  { emoji: "💰", name: "Para biriktir", unit: "TL", category: "Finans" },
+  { emoji: "📖", name: "Ders çalış", unit: "dakika", category: "Öğrenme & Gelişim" },
+  { emoji: "🗣️", name: "Dil pratiği yap", unit: "dakika", category: "Öğrenme & Gelişim" },
+  { emoji: "🎸", name: "Enstrüman çal", unit: "dakika", category: "Hobi & Yaratıcılık" },
+  { emoji: "🎨", name: "Resim/çizim yap", unit: null, category: "Hobi & Yaratıcılık" },
+  { emoji: "🧹", name: "Ev temizliği yap", unit: null, category: "Ev & Düzen" },
+  { emoji: "🌱", name: "Bitkileri sula", unit: null, category: "Ev & Düzen" },
+  { emoji: "📵", name: "Telefon süresini azalt", unit: null, category: "Zihin & Ruh Sağlığı" },
+  { emoji: "☕", name: "Kafeini azalt", unit: null, category: "Sağlık" },
+  { emoji: "🍎", name: "Meyve/sebze ye", unit: "porsiyon", category: "Sağlık" },
+  { emoji: "🚴", name: "Bisiklete bin", unit: "km", category: "Spor & Fitness" },
+  { emoji: "🏊", name: "Yüzme yap", unit: "dakika", category: "Spor & Fitness" },
+  { emoji: "🙏", name: "Şükran günlüğü yaz", unit: null, category: "Zihin & Ruh Sağlığı" },
+  { emoji: "👨‍👩‍👧", name: "Aileyle vakit geçir", unit: "dakika", category: "Sosyal & İlişkiler" },
+  { emoji: "🧠", name: "Zihin egzersizi yap", unit: null, category: "Öğrenme & Gelişim" },
+  { emoji: "🛏️", name: "Yatağını topla", unit: null, category: "Ev & Düzen" },
+  { emoji: "🚿", name: "Duş al", unit: null, category: "Kişisel Bakım" },
+  { emoji: "🪥", name: "Diş ipi kullan", unit: null, category: "Kişisel Bakım" },
+  { emoji: "🌞", name: "Güneş ışığı al", unit: "dakika", category: "Sağlık" },
+  { emoji: "💤", name: "Uyku süresine dikkat et", unit: "saat", category: "Sağlık" },
+  { emoji: "🧘‍♂️", name: "Nefes egzersizi yap", unit: "dakika", category: "Zihin & Ruh Sağlığı" },
+  { emoji: "🤸", name: "Esneme/germe hareketleri yap", unit: "dakika", category: "Spor & Fitness" },
+  { emoji: "🥊", name: "Dövüş sporu yap", unit: "dakika", category: "Spor & Fitness" },
+  { emoji: "🧗", name: "Tırmanış yap", unit: "dakika", category: "Spor & Fitness" },
+  { emoji: "🎬", name: "Film/belgesel izle", unit: "dakika", category: "Hobi & Yaratıcılık" },
+  { emoji: "🎤", name: "Şarkı söyle / prova yap", unit: "dakika", category: "Hobi & Yaratıcılık" },
+  { emoji: "🎭", name: "Sahne sanatı pratiği yap", unit: "dakika", category: "Hobi & Yaratıcılık" },
+  { emoji: "🖌️", name: "El işi/zanaat yap", unit: "dakika", category: "Hobi & Yaratıcılık" },
+  { emoji: "📸", name: "Anı fotoğrafı çek", unit: null, category: "Hobi & Yaratıcılık" },
+  { emoji: "🗺️", name: "Yeni bir yer keşfet", unit: null, category: "Sosyal & İlişkiler" },
+  { emoji: "🪴", name: "Yeni bitki dik", unit: null, category: "Ev & Düzen" },
+  { emoji: "🐱", name: "Evcil hayvanınla ilgilen", unit: "dakika", category: "Sosyal & İlişkiler" },
+  { emoji: "🦋", name: "Doğada vakit geçir", unit: "dakika", category: "Sağlık" },
+  { emoji: "🍵", name: "Bitki çayı iç", unit: "bardak", category: "Sağlık" },
+  { emoji: "🧃", name: "Şekerli içecekten kaçın", unit: null, category: "Sağlık" },
+  { emoji: "🥦", name: "Sebzeli yemek pişir", unit: null, category: "Sağlık" },
+  { emoji: "🩺", name: "Sağlık kontrolü yaptır", unit: null, category: "Sağlık", notePlaceholder: "örn. Diş kontrolü, kan tahlili sonucu" },
+  { emoji: "🧊", name: "Soğuk duş al", unit: null, category: "Sağlık" },
+  { emoji: "💻", name: "Yeni bir beceri öğren", unit: "dakika", category: "Öğrenme & Gelişim" },
+  { emoji: "🧾", name: "Bütçeni/faturalarını kontrol et", unit: null, category: "Finans" },
+  { emoji: "📞", name: "Sevdiğin biriyle iletişim kur", unit: null, category: "Sosyal & İlişkiler" },
+  { emoji: "🕯️", name: "Kendine zaman ayır", unit: "dakika", category: "Zihin & Ruh Sağlığı" },
+  { emoji: "🧵", name: "Dikiş/örgü yap", unit: "dakika", category: "Hobi & Yaratıcılık" },
+  { emoji: "🚗", name: "Araç bakımı kontrol et", unit: "km", category: "Ev & Düzen", notePlaceholder: "örn. Yağ değişimi, lastik rotasyonu, vb." },
+  { emoji: "🧦", name: "Dolabını/eşyalarını düzenle", unit: null, category: "Ev & Düzen" },
 ];
 
 let currentHabits = [];
@@ -519,17 +605,27 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   showLogin();
 });
 
+const newHabitCategorySelect = document.getElementById("new-habit-category");
+for (const cat of CATEGORIES) {
+  const opt = document.createElement("option");
+  opt.value = cat;
+  opt.textContent = `${CATEGORY_ICONS[cat] || ""} ${cat}`.trim();
+  newHabitCategorySelect.appendChild(opt);
+}
+
 document.getElementById("add-habit-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const input = document.getElementById("new-habit-title");
   const title = input.value.trim();
   if (!title) return;
+  const category = newHabitCategorySelect.value || null;
   await apiFetch("/habits", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title }),
+    body: JSON.stringify({ title, category }),
   });
   input.value = "";
+  newHabitCategorySelect.value = "";
   loadHabits();
 });
 
@@ -581,15 +677,51 @@ function insertAtCursor(input, text) {
   input.setSelectionRange(newPos, newPos);
 }
 
+let activeLibraryCategory = "";
+
+function renderLibraryChips() {
+  const chipsEl = document.getElementById("library-category-chips");
+  chipsEl.innerHTML = "";
+
+  const allChip = document.createElement("button");
+  allChip.type = "button";
+  allChip.className = "category-chip" + (activeLibraryCategory === "" ? " active" : "");
+  allChip.textContent = `Tümü (${HABIT_LIBRARY.length})`;
+  allChip.addEventListener("click", () => {
+    activeLibraryCategory = "";
+    renderLibrary();
+  });
+  chipsEl.appendChild(allChip);
+
+  for (const cat of CATEGORIES) {
+    const count = HABIT_LIBRARY.filter((item) => item.category === cat).length;
+    if (count === 0) continue;
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "category-chip" + (activeLibraryCategory === cat ? " active" : "");
+    chip.textContent = `${CATEGORY_ICONS[cat] || ""} ${cat}`.trim();
+    chip.addEventListener("click", () => {
+      activeLibraryCategory = cat;
+      renderLibrary();
+    });
+    chipsEl.appendChild(chip);
+  }
+}
+
 function renderLibrary() {
+  renderLibraryChips();
+
   const grid = document.getElementById("library-grid");
   const message = document.getElementById("library-message");
   message.textContent = "";
   grid.innerHTML = "";
 
   const existingTitles = new Set(currentHabits.map((h) => h.title));
+  const items = activeLibraryCategory
+    ? HABIT_LIBRARY.filter((item) => item.category === activeLibraryCategory)
+    : HABIT_LIBRARY;
 
-  for (const item of HABIT_LIBRARY) {
+  for (const item of items) {
     const fullTitle = `${item.emoji} ${item.name}`;
     const already = existingTitles.has(fullTitle);
 
@@ -602,18 +734,23 @@ function renderLibrary() {
       btn.disabled = true;
       btn.title = "Zaten listende";
     } else {
-      btn.addEventListener("click", () => quickAddFromLibrary(fullTitle, item.unit));
+      btn.addEventListener("click", () => quickAddFromLibrary(item));
     }
     grid.appendChild(btn);
   }
 }
 
-async function quickAddFromLibrary(fullTitle, unit) {
+async function quickAddFromLibrary(item) {
+  const fullTitle = `${item.emoji} ${item.name}`;
   const message = document.getElementById("library-message");
   await apiFetch("/habits", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title: fullTitle, tracking_unit: unit || null }),
+    body: JSON.stringify({
+      title: fullTitle,
+      tracking_unit: item.unit || null,
+      category: item.category || null,
+    }),
   });
   message.textContent = `"${fullTitle}" eklendi.`;
   await loadHabits();
@@ -638,12 +775,16 @@ async function loadHabits() {
     const streakResponse = await apiFetch(`/habits/${habit.id}/streak`);
     const streak = await streakResponse.json();
 
+    const categoryBadge = habit.category
+      ? `<span class="category-badge">${CATEGORY_ICONS[habit.category] || ""} ${escapeHtml(habit.category)}</span>`
+      : "";
+
     const row = document.createElement("div");
     row.className = "habit";
     row.innerHTML = `
       <div>
         <div class="habit-title">${escapeHtml(habit.title)}</div>
-        <div class="habit-meta">${habit.frequency === "weekly" ? "Haftalık" : "Günlük"} · <span class="streak">${streak.current_streak} 🔥</span></div>
+        <div class="habit-meta">${habit.frequency === "weekly" ? "Haftalık" : "Günlük"} · <span class="streak">${streak.current_streak} 🔥</span>${categoryBadge}</div>
       </div>
       <div class="actions">
         <button class="btn-check btn-small">✓ Bugün</button>
@@ -662,15 +803,17 @@ async function loadHabits() {
 
 async function checkInHabit(habit) {
   let amount = null;
+  let note = null;
   if (habit.tracking_unit) {
     const result = await askAmount(habit);
     if (result.cancelled) return;
     amount = result.amount;
+    note = result.note;
   }
   await apiFetch(`/habits/${habit.id}/logs`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ amount }),
+    body: JSON.stringify({ amount, note }),
   });
   const detailVisible = document.getElementById("detail-view").style.display !== "none";
   if (detailVisible && currentDetailId === habit.id) {
@@ -683,6 +826,7 @@ async function checkInHabit(habit) {
 const amountModalOverlay = document.getElementById("amount-modal-overlay");
 const amountModalForm = document.getElementById("amount-modal-form");
 const amountModalInput = document.getElementById("amount-modal-input");
+const amountModalNote = document.getElementById("amount-modal-note");
 const amountModalCancelBtn = document.getElementById("amount-modal-cancel");
 let amountModalCleanup = null;
 
@@ -691,6 +835,8 @@ function askAmount(habit) {
     document.getElementById("amount-modal-title").textContent = habit.title;
     document.getElementById("amount-modal-label").textContent = `Kaç ${habit.tracking_unit}?`;
     amountModalInput.value = "";
+    amountModalNote.value = "";
+    amountModalNote.placeholder = habit.notePlaceholder || NOTE_PLACEHOLDER;
 
     function finish(result) {
       amountModalOverlay.style.display = "none";
@@ -703,10 +849,15 @@ function askAmount(habit) {
       e.preventDefault();
       const raw = amountModalInput.value.trim();
       const parsed = raw === "" ? null : parseFloat(raw.replace(",", "."));
-      finish({ cancelled: false, amount: isNaN(parsed) ? null : parsed });
+      const noteRaw = amountModalNote.value.trim();
+      finish({
+        cancelled: false,
+        amount: isNaN(parsed) ? null : parsed,
+        note: noteRaw === "" ? null : noteRaw,
+      });
     }
     function onCancel() {
-      finish({ cancelled: true, amount: null });
+      finish({ cancelled: true, amount: null, note: null });
     }
 
     amountModalForm.addEventListener("submit", onSubmit);
@@ -761,6 +912,13 @@ async function openDetail(habitId) {
   currentDetailLogs = await logsRes.json();
 
   document.getElementById("detail-title").textContent = habit.title;
+  const categoryBadge = document.getElementById("detail-category-badge");
+  if (habit.category) {
+    categoryBadge.textContent = `${CATEGORY_ICONS[habit.category] || ""} ${habit.category}`.trim();
+    categoryBadge.style.display = "inline-block";
+  } else {
+    categoryBadge.style.display = "none";
+  }
   document.getElementById("detail-current-streak").textContent = `${stats.current_streak} 🔥`;
   document.getElementById("detail-longest-streak").textContent = `${stats.longest_streak} 🏆`;
   document.getElementById("detail-total").textContent = stats.total_completions;
@@ -790,7 +948,7 @@ function renderCalendar() {
 
   const logsByDate = new Map();
   for (const log of currentDetailLogs) {
-    logsByDate.set(log.completed_on, log.amount);
+    logsByDate.set(log.completed_on, log);
   }
 
   const today = new Date();
@@ -820,9 +978,13 @@ function renderCalendar() {
     let inner = `<span>${day}</span>`;
     if (logsByDate.has(iso)) {
       cell.classList.add("filled");
-      const amount = logsByDate.get(iso);
-      if (amount !== null && amount !== undefined) {
-        inner += `<span class="amount">${formatNumber(amount)}</span>`;
+      const log = logsByDate.get(iso);
+      if (log.amount !== null && log.amount !== undefined) {
+        inner += `<span class="amount">${formatNumber(log.amount)}</span>`;
+      }
+      if (log.note) {
+        inner += `<span class="note-dot">📝</span>`;
+        cell.title = log.note;
       }
     }
     cell.innerHTML = inner;

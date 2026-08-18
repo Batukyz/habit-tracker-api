@@ -307,3 +307,54 @@ def test_update_habit_tracking_unit(client):
     response = client.put(f"/habits/{habit['id']}", json={"tracking_unit": "sayfa"})
     assert response.status_code == 200
     assert response.json()["tracking_unit"] == "sayfa"
+
+
+def test_create_habit_with_category(client):
+    response = client.post("/habits", json={"title": "Su iç", "category": "Sağlık"})
+    assert response.status_code == 201
+    assert response.json()["category"] == "Sağlık"
+
+
+def test_create_habit_without_category_defaults_to_none(client):
+    response = client.post("/habits", json={"title": "Read"})
+    assert response.status_code == 201
+    assert response.json()["category"] is None
+
+
+def test_update_habit_category(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+
+    response = client.put(f"/habits/{habit['id']}", json={"category": "Öğrenme & Gelişim"})
+    assert response.status_code == 200
+    assert response.json()["category"] == "Öğrenme & Gelişim"
+
+
+def test_list_habits_filter_by_category(client):
+    client.post("/habits", json={"title": "Su iç", "category": "Sağlık"})
+    client.post("/habits", json={"title": "Kitap oku", "category": "Öğrenme & Gelişim"})
+
+    response = client.get("/habits", params={"category": "Sağlık"})
+    assert response.status_code == 200
+    titles = [h["title"] for h in response.json()]
+    assert titles == ["Su iç"]
+
+
+def test_create_habit_log_with_note(client):
+    habit = client.post("/habits", json={"title": "Araç bakımı", "tracking_unit": "km"}).json()
+
+    response = client.post(
+        f"/habits/{habit['id']}/logs",
+        json={"amount": 15230, "note": "Yağ değişimi yapıldı"},
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["amount"] == 15230
+    assert body["note"] == "Yağ değişimi yapıldı"
+
+
+def test_create_habit_log_without_note_defaults_to_none(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+
+    response = client.post(f"/habits/{habit['id']}/logs", json={})
+    assert response.status_code == 201
+    assert response.json()["note"] is None

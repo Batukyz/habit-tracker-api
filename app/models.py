@@ -26,6 +26,7 @@ class Habit(Base):
     is_completed = Column(Boolean, default=False)
     is_archived = Column(Boolean, default=False, nullable=False)
     tracking_unit = Column(String, nullable=True)  # e.g. "litre", "sayfa" - null means plain check-in
+    category = Column(String, nullable=True)  # e.g. "Sağlık", "Spor & Fitness"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="habits")
@@ -39,6 +40,7 @@ class HabitLog(Base):
     habit_id = Column(Integer, ForeignKey("habits.id"), nullable=False)
     completed_on = Column(Date, server_default=func.current_date(), nullable=False)
     amount = Column(Float, nullable=True)  # e.g. liters drunk, pages read - null for plain check-ins
+    note = Column(String, nullable=True)  # free-text detail, e.g. "yağ değişimi, 15.230 km"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     habit = relationship("Habit", back_populates="logs")

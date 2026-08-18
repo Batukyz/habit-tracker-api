@@ -34,20 +34,23 @@ http://127.0.0.1:8000/app/
 
 Kayıt ol / giriş yap → habit ekle → "✓ Bugün" butonuyla check-in yap → güncel
 streak'i gör → "Arşivle" ile kaldır. Yeni habit eklerken 🙂 butonuyla ~90
-emojilik bir panelden seçim yapabilirsin, ya da "📚 Habit kütüphanesinden
-hızlı ekle" ile her biri kendi emojisi ve (varsa) birimiyle eşleşmiş 60
-klasik habit'ten tek tıkla ekleyebilirsin — zaten eklenmiş olanlar otomatik
-soluklaşıp devre dışı kalır.
+emojilik bir panelden seçim yapabilir, bir **kategori** seçebilirsin (Sağlık,
+Spor & Fitness, Finans, vb.) — ya da "📚 Habit kütüphanesinden hızlı ekle" ile
+her biri kendi emojisi, kategorisi ve (varsa) birimiyle eşleşmiş 60 klasik
+habit'ten, üstteki kategori filtrelerine göre daraltarak tek tıkla ekleyebilirsin
+— zaten eklenmiş olanlar otomatik soluklaşıp devre dışı kalır.
 
 Bir habit'in başlığına tıklayınca, o habit'in ay ay gezilebilen bir takvim
 görünümüyle (‹ Ocak, 2026 › tarzı, ok tuşlarıyla önceki/sonraki aya geçilebilir)
-tüm geçmişini, güncel/en uzun serisini ve tamamlanma oranını gösteren bir detay
-ekranı açılır. **Miktar takibi olan habit'ler** (kütüphaneden "Su iç", "Kitap oku"
-gibi birimli eklenenler, ya da manuel oluşturup `tracking_unit` alanı API
-üzerinden ayarlananlar) için "✓ Bugün" butonuna basınca, tarayıcının çirkin
-`prompt()` kutusu yerine uygulamanın kendi temasına uyan bir pencerede ne kadar
-yapıldığı sorulur (örn. "Kaç litre?") — takvimde o günün hücresinde miktar da
-görünür, detay ekranında "Toplam litre" gibi bir satır eklenir.
+tüm geçmişini, kategorisini, güncel/en uzun serisini ve tamamlanma oranını
+gösteren bir detay ekranı açılır. **Miktar takibi olan habit'ler** (kütüphaneden
+"Su iç", "Araç bakımı kontrol et" gibi birimli eklenenler, ya da manuel oluşturup
+`tracking_unit` alanı API üzerinden ayarlananlar) için "✓ Bugün" butonuna
+basınca, tarayıcının çirkin `prompt()` kutusu yerine uygulamanın kendi temasına
+uyan bir pencerede hem ne kadar yapıldığı (örn. "Kaç km?") hem de isteğe bağlı
+bir **not** sorulur (örn. "Yağ değişimi, lastik rotasyonu") — takvimde o günün
+hücresinde miktar ve not ikonu görünür (üzerine gelince notu okuyabilirsin),
+detay ekranında "Toplam km" gibi bir satır eklenir.
 
 Token'lar tarayıcının `localStorage`'ında tutulur, süresi dolan access token
 otomatik yenilenir (refresh akışı arka planda çalışır). Saf HTML/CSS/JS —
@@ -204,20 +207,24 @@ için genel bir üst sınır (dakikada 200 istek) var.
 | GET | `/me` | Kendi profilini gör | Evet |
 | PUT | `/me` | E-posta/şifreni güncelle | Evet |
 | POST | `/habits` | Yeni habit oluştur | Evet |
-| GET | `/habits` | Kendi habit'lerini listele (filtre + sayfalama) | Evet |
+| GET | `/habits` | Kendi habit'lerini listele (frequency/is_completed/category filtresi + arama + sayfalama) | Evet |
 | GET | `/habits/{habit_id}` | Tek bir habit'i getir | Evet |
 | PUT | `/habits/{habit_id}` | Habit'i güncelle | Evet |
 | DELETE | `/habits/{habit_id}` | Habit'i arşivle (kalıcı silmez, geçmişi korur) | Evet |
-| POST | `/habits/{habit_id}/logs` | Habit için tamamlama kaydı (check-in) oluştur, isteğe bağlı `amount` ile | Evet |
+| POST | `/habits/{habit_id}/logs` | Habit için tamamlama kaydı (check-in) oluştur, isteğe bağlı `amount` ve `note` ile | Evet |
 | GET | `/habits/{habit_id}/logs` | Habit'in tamamlama geçmişini listele | Evet |
 | DELETE | `/habits/{habit_id}/logs/{log_id}` | Bir tamamlama kaydını sil | Evet |
 | GET | `/habits/{habit_id}/streak` | Habit'in güncel kesintisiz serisini (streak) hesapla | Evet |
 | GET | `/habits/{habit_id}/stats` | Habit istatistikleri: toplam check-in, güncel/en uzun streak, tamamlanma oranı, (varsa) toplam miktar | Evet |
 
-`Habit`'in `tracking_unit` alanı (örn. `"litre"`, `"sayfa"`) ayarlıysa, o habit
-sadece işaretlenen bir şey değil, **miktar takip edilen** bir habit'tir —
+`Habit`'in `tracking_unit` alanı (örn. `"litre"`, `"sayfa"`, `"km"`) ayarlıysa, o
+habit sadece işaretlenen bir şey değil, **miktar takip edilen** bir habit'tir —
 `POST .../logs` çağrısına `amount` (sayı) eklenebilir, `stats` de tüm
-zamanların toplam miktarını (`total_amount`) döner.
+zamanların toplam miktarını (`total_amount`) döner. Her check-in kaydına
+ayrıca isteğe bağlı serbest metin bir `note` eklenebilir (örn. "yağ değişimi,
+15.230 km'de yapıldı") — miktar takibi olmayan habit'ler için de kullanılabilir.
+`Habit`'in `category` alanı (örn. `"Sağlık"`, `"Spor & Fitness"`) ile
+sınıflandırılabilir ve `GET /habits?category=...` ile filtrelenebilir.
 
 Habit'ler kullanıcıya özeldir: bir kullanıcı başka bir kullanıcının habit'ine
 eriştiğinde de (o habit hiç yokmuş gibi) `404` alır — habit'in varlığı bile sızdırılmaz.

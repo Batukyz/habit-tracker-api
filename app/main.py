@@ -175,6 +175,7 @@ def create_habit(
 def list_habits(
     frequency: Optional[str] = None,
     is_completed: Optional[bool] = None,
+    category: Optional[str] = None,
     search: Optional[str] = None,
     include_archived: bool = False,
     skip: int = Query(default=0, ge=0),
@@ -189,6 +190,8 @@ def list_habits(
         query = query.filter(models.Habit.frequency == frequency)
     if is_completed is not None:
         query = query.filter(models.Habit.is_completed == is_completed)
+    if category is not None:
+        query = query.filter(models.Habit.category == category)
     if search:
         query = query.filter(models.Habit.title.ilike(f"%{search}%"))
     return query.order_by(models.Habit.id).offset(skip).limit(limit).all()
@@ -239,7 +242,10 @@ def create_habit_log(
 ):
     _get_owned_habit(habit_id, current_user.id, db)
     db_log = models.HabitLog(
-        habit_id=habit_id, completed_on=log.completed_on or date.today(), amount=log.amount
+        habit_id=habit_id,
+        completed_on=log.completed_on or date.today(),
+        amount=log.amount,
+        note=log.note,
     )
     db.add(db_log)
     db.commit()
