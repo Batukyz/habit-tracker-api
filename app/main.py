@@ -238,7 +238,9 @@ def create_habit_log(
     current_user: models.User = Depends(get_current_user),
 ):
     _get_owned_habit(habit_id, current_user.id, db)
-    db_log = models.HabitLog(habit_id=habit_id, completed_on=log.completed_on or date.today())
+    db_log = models.HabitLog(
+        habit_id=habit_id, completed_on=log.completed_on or date.today(), amount=log.amount
+    )
     db.add(db_log)
     db.commit()
     db.refresh(db_log)
@@ -302,10 +304,11 @@ def get_habit_stats(
     current_user: models.User = Depends(get_current_user),
 ):
     habit = _get_owned_habit(habit_id, current_user.id, db)
-    dates = [
-        log.completed_on
-        for log in db.query(models.HabitLog).filter(models.HabitLog.habit_id == habit_id).all()
-    ]
+    logs = db.query(models.HabitLog).filter(models.HabitLog.habit_id == habit_id).all()
+    dates = [log.completed_on for log in logs]
+    total_amount = None
+    if habit.tracking_unit is not None:
+        total_amount = sum(log.amount for log in logs if log.amount is not None)
     return schemas.HabitStatsOut(
         habit_id=habit_id,
         total_completions=len(dates),
@@ -314,4 +317,5 @@ def get_habit_stats(
         completion_rate=completion_rate(
             dates, habit.frequency, since=habit.created_at.date(), until=date.today()
         ),
+        total_amount=total_amount,
     )

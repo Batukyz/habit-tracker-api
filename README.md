@@ -33,16 +33,24 @@ http://127.0.0.1:8000/app/
 ```
 
 Kayıt ol / giriş yap → habit ekle → "✓ Bugün" butonuyla check-in yap → güncel
-streak'i gör → "Arşivle" ile kaldır. "📚 Habit kütüphanesinden hızlı ekle"
-butonuyla, her biri kendi emojisiyle eşleşmiş 30 klasik habit'ten (Su iç,
-Meditasyon yap, Erken kalk, vb.) tek tıkla ekleyebilirsin — zaten eklenmiş
-olanlar otomatik soluklaşıp devre dışı kalır. Bir habit'in başlığına tıklayınca, GitHub'ın
-katkı grafiğine benzer bir ısı haritasıyla (son ~1 yıl, gün gün) o habit'in tüm
-geçmişini, güncel/en uzun serisini ve tamamlanma oranını gösteren bir detay
-ekranı açılır. Token'lar tarayıcının `localStorage`'ında tutulur, süresi dolan
-access token otomatik yenilenir (refresh akışı arka planda çalışır). Saf
-HTML/CSS/JS — ekstra build aracı veya bağımlılık gerekmez,
-`app/static/index.html` dosyasında tek parça halinde.
+streak'i gör → "Arşivle" ile kaldır. Yeni habit eklerken 🙂 butonuyla emoji
+seçebilirsin, ya da "📚 Habit kütüphanesinden hızlı ekle" ile her biri kendi
+emojisi ve (varsa) birimiyle eşleşmiş 30 klasik habit'ten tek tıkla ekleyebilirsin
+— zaten eklenmiş olanlar otomatik soluklaşıp devre dışı kalır.
+
+Bir habit'in başlığına tıklayınca, o habit'in ay ay gezilebilen bir takvim
+görünümüyle (‹ Ocak, 2026 › tarzı, ok tuşlarıyla önceki/sonraki aya geçilebilir)
+tüm geçmişini, güncel/en uzun serisini ve tamamlanma oranını gösteren bir detay
+ekranı açılır. **Miktar takibi olan habit'ler** (kütüphaneden "Su iç", "Kitap oku"
+gibi birimli eklenenler, ya da manuel oluşturup `tracking_unit` alanı API
+üzerinden ayarlananlar) için "✓ Bugün" butonuna basınca ne kadar yapıldığı
+sorulur (örn. "Kaç litre?") — takvimde o günün hücresinde miktar da görünür,
+detay ekranında "Toplam litre" gibi bir satır eklenir.
+
+Token'lar tarayıcının `localStorage`'ında tutulur, süresi dolan access token
+otomatik yenilenir (refresh akışı arka planda çalışır). Saf HTML/CSS/JS —
+ekstra build aracı veya bağımlılık gerekmez, `app/static/index.html`
+dosyasında tek parça halinde.
 
 ## Veritabanı migration'ları
 
@@ -198,11 +206,16 @@ için genel bir üst sınır (dakikada 200 istek) var.
 | GET | `/habits/{habit_id}` | Tek bir habit'i getir | Evet |
 | PUT | `/habits/{habit_id}` | Habit'i güncelle | Evet |
 | DELETE | `/habits/{habit_id}` | Habit'i arşivle (kalıcı silmez, geçmişi korur) | Evet |
-| POST | `/habits/{habit_id}/logs` | Habit için tamamlama kaydı (check-in) oluştur | Evet |
+| POST | `/habits/{habit_id}/logs` | Habit için tamamlama kaydı (check-in) oluştur, isteğe bağlı `amount` ile | Evet |
 | GET | `/habits/{habit_id}/logs` | Habit'in tamamlama geçmişini listele | Evet |
 | DELETE | `/habits/{habit_id}/logs/{log_id}` | Bir tamamlama kaydını sil | Evet |
 | GET | `/habits/{habit_id}/streak` | Habit'in güncel kesintisiz serisini (streak) hesapla | Evet |
-| GET | `/habits/{habit_id}/stats` | Habit istatistikleri: toplam check-in, güncel/en uzun streak, tamamlanma oranı | Evet |
+| GET | `/habits/{habit_id}/stats` | Habit istatistikleri: toplam check-in, güncel/en uzun streak, tamamlanma oranı, (varsa) toplam miktar | Evet |
+
+`Habit`'in `tracking_unit` alanı (örn. `"litre"`, `"sayfa"`) ayarlıysa, o habit
+sadece işaretlenen bir şey değil, **miktar takip edilen** bir habit'tir —
+`POST .../logs` çağrısına `amount` (sayı) eklenebilir, `stats` de tüm
+zamanların toplam miktarını (`total_amount`) döner.
 
 Habit'ler kullanıcıya özeldir: bir kullanıcı başka bir kullanıcının habit'ine
 eriştiğinde de (o habit hiç yokmuş gibi) `404` alır — habit'in varlığı bile sızdırılmaz.

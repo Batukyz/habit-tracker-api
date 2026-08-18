@@ -252,3 +252,58 @@ def test_list_habits_pagination(client):
     assert response.status_code == 200
     titles = [h["title"] for h in response.json()]
     assert titles == ["Habit 2", "Habit 3"]
+
+
+def test_create_habit_with_tracking_unit(client):
+    response = client.post("/habits", json={"title": "Su iç", "tracking_unit": "litre"})
+    assert response.status_code == 201
+    assert response.json()["tracking_unit"] == "litre"
+
+
+def test_create_habit_without_tracking_unit_defaults_to_none(client):
+    response = client.post("/habits", json={"title": "Read"})
+    assert response.status_code == 201
+    assert response.json()["tracking_unit"] is None
+
+
+def test_create_habit_log_with_amount(client):
+    habit = client.post("/habits", json={"title": "Su iç", "tracking_unit": "litre"}).json()
+
+    response = client.post(f"/habits/{habit['id']}/logs", json={"amount": 0.5})
+    assert response.status_code == 201
+    assert response.json()["amount"] == 0.5
+
+
+def test_create_habit_log_without_amount_defaults_to_none(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+
+    response = client.post(f"/habits/{habit['id']}/logs", json={})
+    assert response.status_code == 201
+    assert response.json()["amount"] is None
+
+
+def test_habit_stats_total_amount_for_tracked_habit(client):
+    habit = client.post("/habits", json={"title": "Su iç", "tracking_unit": "litre"}).json()
+    client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-01-01", "amount": 0.5})
+    client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-01-02", "amount": 1.5})
+
+    response = client.get(f"/habits/{habit['id']}/stats")
+    assert response.status_code == 200
+    assert response.json()["total_amount"] == 2.0
+
+
+def test_habit_stats_total_amount_none_for_untracked_habit(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+    client.post(f"/habits/{habit['id']}/logs", json={"completed_on": "2026-01-01"})
+
+    response = client.get(f"/habits/{habit['id']}/stats")
+    assert response.status_code == 200
+    assert response.json()["total_amount"] is None
+
+
+def test_update_habit_tracking_unit(client):
+    habit = client.post("/habits", json={"title": "Read"}).json()
+
+    response = client.put(f"/habits/{habit['id']}", json={"tracking_unit": "sayfa"})
+    assert response.status_code == 200
+    assert response.json()["tracking_unit"] == "sayfa"

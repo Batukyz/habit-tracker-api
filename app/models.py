@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Date, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Date, DateTime, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
@@ -25,6 +25,7 @@ class Habit(Base):
     frequency = Column(String, default="daily")  # daily / weekly
     is_completed = Column(Boolean, default=False)
     is_archived = Column(Boolean, default=False, nullable=False)
+    tracking_unit = Column(String, nullable=True)  # e.g. "litre", "sayfa" - null means plain check-in
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="habits")
@@ -37,6 +38,7 @@ class HabitLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     habit_id = Column(Integer, ForeignKey("habits.id"), nullable=False)
     completed_on = Column(Date, server_default=func.current_date(), nullable=False)
+    amount = Column(Float, nullable=True)  # e.g. liters drunk, pages read - null for plain check-ins
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     habit = relationship("Habit", back_populates="logs")

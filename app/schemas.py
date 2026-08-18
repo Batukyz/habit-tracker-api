@@ -54,6 +54,7 @@ class HabitBase(BaseModel):
     description: Optional[str] = None
     frequency: str = "daily"
     is_completed: bool = False
+    tracking_unit: Optional[str] = None
 
 
 class HabitCreate(HabitBase):
@@ -66,6 +67,7 @@ class HabitUpdate(BaseModel):
     frequency: Optional[str] = None
     is_completed: Optional[bool] = None
     is_archived: Optional[bool] = None
+    tracking_unit: Optional[str] = None
 
 
 class HabitOut(HabitBase):
@@ -78,6 +80,7 @@ class HabitOut(HabitBase):
 
 class HabitLogCreate(BaseModel):
     completed_on: Optional[date] = None
+    amount: Optional[float] = None
 
 
 class HabitLogOut(BaseModel):
@@ -86,6 +89,7 @@ class HabitLogOut(BaseModel):
     id: int
     habit_id: int
     completed_on: date
+    amount: Optional[float] = None
     created_at: datetime
 
 
@@ -100,3 +104,4 @@ class HabitStatsOut(BaseModel):
     current_streak: int
     longest_streak: int
     completion_rate: float
+    total_amount: Optional[float] = None
