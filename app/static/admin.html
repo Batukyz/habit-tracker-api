@@ -137,47 +137,26 @@
   .preview-presets { display: flex; gap: 6px; flex-wrap: wrap; margin: -6px 0 14px; }
   .preview-presets button { background: var(--input-bg); border: 1px solid var(--border); color: var(--muted); }
 
-  /* --- Ecosystem preview scene: same visual as the main app's ecosystem panel,
-     duplicated here (this static site has no build step / shared JS module -
-     every page is self-contained, same as the auth/theme helpers above) so
-     admins can actually see the stage a streak value produces, not just read
-     its name. --- */
+  /* --- Ecosystem preview scene: same tree renderer as the main app's
+     ecosystem panel, duplicated here (this static site has no build step /
+     shared JS module - every page is self-contained, same as the auth/theme
+     helpers above) so admins can actually see the stage a streak value
+     produces, not just read its name. --- */
   .ecosystem-scene {
-    --eco-sky-top: #bfe3ff;
-    --eco-sky-bottom: #eaf6ff;
-    --eco-ground: #b98a5e;
-    --eco-ground-dark: #8f6a44;
-    --eco-sun-moon: #ffd166;
-    --eco-particle: #ffe8a3;
     border-radius: 14px;
     overflow: hidden;
-    background: linear-gradient(180deg, var(--eco-sky-top), var(--eco-sky-bottom));
+    background: #050505;
     max-width: 260px;
     margin: 4px 0 14px;
+    position: relative;
   }
-  [data-theme="dark"] .ecosystem-scene { --eco-sky-top: #223055; --eco-sky-bottom: #33456f; }
-  .eco-svg { display: block; width: 100%; height: auto; }
-  .eco-sun-moon { fill: var(--eco-sun-moon); }
-  .eco-ground { fill: var(--eco-ground); }
-  .eco-ground-shade { fill: var(--eco-ground-dark); }
-  .eco-particle { fill: var(--eco-particle); opacity: 0; animation: eco-float 5s ease-in-out infinite; }
-  .eco-particle:nth-child(2) { animation-delay: 0.6s; }
-  .eco-particle:nth-child(3) { animation-delay: 1.4s; }
-  .eco-particle:nth-child(4) { animation-delay: 2.1s; }
-  @keyframes eco-float {
-    0% { opacity: 0; transform: translateY(0); }
-    20% { opacity: 0.85; }
-    100% { opacity: 0; transform: translateY(-22px); }
-  }
-  .eco-sway { transform-box: fill-box; transform-origin: 50% 100%; animation: eco-sway 4.5s ease-in-out infinite; }
-  @keyframes eco-sway {
-    0%, 100% { transform: rotate(-1.5deg); }
-    50% { transform: rotate(1.5deg); }
-  }
-  .eco-creature { transform-box: fill-box; transform-origin: 50% 50%; animation: eco-flutter 3.2s ease-in-out infinite; }
-  @keyframes eco-flutter {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-5px) rotate(4deg); }
+  .ecosystem-scene canvas { display: block; width: 100%; height: auto; aspect-ratio: 260 / 280; }
+  .ecosystem-scene::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 14%, rgba(255,255,255,0) 26%);
+    pointer-events: none;
   }
   .ecosystem-scene.eco-grow-pop { animation: eco-grow-pop 0.7s ease; }
   @keyframes eco-grow-pop {
@@ -256,96 +235,7 @@
           <button type="button" class="btn-primary" id="preview-btn" style="width:auto; flex:none;">Önizle</button>
         </div>
         <div class="ecosystem-scene" id="ecosystem-scene">
-          <svg class="eco-svg" viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg">
-            <circle class="eco-sun-moon" cx="176" cy="46" r="20"></circle>
-            <circle class="eco-particle" cx="52" cy="150" r="2.2"></circle>
-            <circle class="eco-particle" cx="150" cy="120" r="1.8"></circle>
-            <circle class="eco-particle" cx="90" cy="170" r="2"></circle>
-            <circle class="eco-particle" cx="130" cy="190" r="1.6"></circle>
-
-            <g id="eco-tree-canopy-full" style="display:none">
-              <circle cx="110" cy="118" r="34" fill="#3f8f52"></circle>
-              <circle cx="88" cy="132" r="24" fill="#4aa860"></circle>
-              <circle cx="132" cy="132" r="24" fill="#4aa860"></circle>
-            </g>
-            <g id="eco-tree" class="eco-sway" style="display:none">
-              <rect x="105" y="150" width="10" height="60" rx="3" fill="#7a5233"></rect>
-              <circle cx="110" cy="140" r="28" fill="#4aa860"></circle>
-              <circle cx="90" cy="152" r="18" fill="#5cbf74"></circle>
-              <circle cx="130" cy="152" r="18" fill="#5cbf74"></circle>
-            </g>
-            <g id="eco-bush" class="eco-sway" style="display:none">
-              <circle cx="95" cy="185" r="16" fill="#4aa860"></circle>
-              <circle cx="115" cy="180" r="20" fill="#5cbf74"></circle>
-              <circle cx="130" cy="190" r="14" fill="#4aa860"></circle>
-            </g>
-
-            <g id="eco-stem" class="eco-sway" style="display:none">
-              <path d="M110 210 Q104 170 110 130" stroke="#3f8f52" stroke-width="4" fill="none" stroke-linecap="round"></path>
-            </g>
-            <g id="eco-leaves-1" class="eco-sway" style="display:none">
-              <ellipse cx="96" cy="188" rx="12" ry="6" fill="#5cbf74" transform="rotate(-25 96 188)"></ellipse>
-              <ellipse cx="124" cy="184" rx="12" ry="6" fill="#5cbf74" transform="rotate(25 124 184)"></ellipse>
-            </g>
-            <g id="eco-leaves-2" class="eco-sway" style="display:none">
-              <ellipse cx="92" cy="158" rx="13" ry="6" fill="#4aa860" transform="rotate(-20 92 158)"></ellipse>
-              <ellipse cx="128" cy="154" rx="13" ry="6" fill="#4aa860" transform="rotate(20 128 154)"></ellipse>
-            </g>
-            <g id="eco-bud" style="display:none">
-              <circle cx="110" cy="128" r="6" fill="#e88ec4"></circle>
-            </g>
-
-            <g id="eco-flowers-1" style="display:none">
-              <circle cx="80" cy="196" r="5" fill="#f2a6d0"></circle>
-              <circle cx="140" cy="200" r="5" fill="#f7c948"></circle>
-            </g>
-            <g id="eco-flowers-2" style="display:none">
-              <circle cx="70" cy="205" r="5" fill="#f7c948"></circle>
-              <circle cx="150" cy="210" r="5" fill="#e88ec4"></circle>
-              <circle cx="110" cy="120" r="6" fill="#f2a6d0"></circle>
-            </g>
-            <g id="eco-flowers-3" style="display:none">
-              <circle cx="60" cy="200" r="5" fill="#f2a6d0"></circle>
-              <circle cx="160" cy="196" r="5" fill="#f7c948"></circle>
-              <circle cx="75" cy="215" r="4" fill="#9fd8f0"></circle>
-              <circle cx="145" cy="218" r="4" fill="#9fd8f0"></circle>
-            </g>
-
-            <g id="eco-grass" style="display:none">
-              <path d="M50 218 q3 -12 0 -18" stroke="#3f8f52" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
-              <path d="M160 220 q-3 -12 0 -18" stroke="#3f8f52" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
-              <path d="M65 222 q3 -10 0 -16" stroke="#4aa860" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
-            </g>
-            <g id="eco-stones" style="display:none">
-              <ellipse cx="145" cy="222" rx="8" ry="5" fill="#9a978f"></ellipse>
-              <ellipse cx="158" cy="226" rx="5" ry="3.5" fill="#847f75"></ellipse>
-            </g>
-
-            <g id="eco-creature-1" class="eco-creature" style="display:none">
-              <ellipse cx="150" cy="140" rx="6" ry="4" fill="#f2a6d0"></ellipse>
-              <ellipse cx="160" cy="140" rx="6" ry="4" fill="#e88ec4"></ellipse>
-              <circle cx="155" cy="140" r="1.6" fill="#5a3d2b"></circle>
-            </g>
-            <g id="eco-creature-2" class="eco-creature" style="display:none">
-              <ellipse cx="60" cy="150" rx="5" ry="3.4" fill="#9fd8f0"></ellipse>
-              <ellipse cx="68" cy="150" rx="5" ry="3.4" fill="#7cc3e8"></ellipse>
-              <circle cx="64" cy="150" r="1.4" fill="#5a3d2b"></circle>
-            </g>
-
-            <g id="eco-sprout" style="display:none">
-              <ellipse cx="102" cy="212" rx="5" ry="8" fill="#8f6a44" transform="rotate(-15 102 212)"></ellipse>
-              <ellipse cx="110" cy="208" rx="4" ry="10" fill="#5cbf74"></ellipse>
-              <ellipse cx="103" cy="205" rx="7" ry="4" fill="#5cbf74" transform="rotate(-30 103 205)"></ellipse>
-              <ellipse cx="117" cy="205" rx="7" ry="4" fill="#5cbf74" transform="rotate(30 117 205)"></ellipse>
-            </g>
-            <g id="eco-seed" style="display:none">
-              <ellipse cx="110" cy="218" rx="6" ry="8" fill="#8f6a44"></ellipse>
-              <ellipse cx="110" cy="212" rx="2.5" ry="3" fill="#5cbf74"></ellipse>
-            </g>
-
-            <path class="eco-ground" d="M0 226 Q60 214 110 224 T220 222 V260 H0 Z"></path>
-            <path class="eco-ground-shade" d="M0 240 Q60 230 110 238 T220 236 V260 H0 Z"></path>
-          </svg>
+          <canvas id="ecosystem-canvas"></canvas>
         </div>
         <div id="preview-result"></div>
       </div>
@@ -560,35 +450,392 @@ document.getElementById("milestone-form").addEventListener("submit", async (e) =
 });
 
 // --- preview ---
-// Same growth_level -> visible SVG groups mapping as the main app's ecosystem
-// panel (app/static/index.html) - kept in sync manually since this static
-// site has no shared JS module between pages.
-const ECOSYSTEM_VISUAL_STEPS = [
-  { minLevel: 0, groups: [] },
-  { minLevel: 1, groups: ["eco-seed"] },
-  { minLevel: 2, groups: ["eco-sprout"] },
-  { minLevel: 3, groups: ["eco-stem", "eco-leaves-1"] },
-  { minLevel: 4, groups: ["eco-leaves-2", "eco-bud"] },
-  { minLevel: 5, groups: ["eco-flowers-1", "eco-stones"] },
-  { minLevel: 6, groups: ["eco-flowers-2", "eco-bush", "eco-creature-1"] },
-  { minLevel: 7, groups: ["eco-tree", "eco-grass"] },
-  { minLevel: 8, groups: ["eco-tree-canopy-full", "eco-flowers-3", "eco-creature-2"] },
-];
-const ALL_ECOSYSTEM_GROUP_IDS = ECOSYSTEM_VISUAL_STEPS.flatMap((step) => step.groups);
-const ECOSYSTEM_SUPPRESSED_ABOVE = { "eco-stem": 6, "eco-leaves-1": 6, "eco-bud": 5 };
+// Same tree renderer as the main app's ecosystem panel (app/static/index.html)
+// - kept in sync manually since this static site has no shared JS module
+// between pages.
+function treeMulberry32(seed) {
+  let a = seed;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function treeLerp(a, b, t) { return a + (b - a) * t; }
+function treeHexToRgb(hex) { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function treeRgbToHex(r, g, b) { return "#" + [r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join(""); }
+function treeMix(hexA, hexB, t) { const a = treeHexToRgb(hexA), b = treeHexToRgb(hexB); return treeRgbToHex(treeLerp(a[0], b[0], t), treeLerp(a[1], b[1], t), treeLerp(a[2], b[2], t)); }
+function treeShade(hex, amt) { return amt >= 0 ? treeMix(hex, "#ffffff", amt) : treeMix(hex, "#000000", -amt); }
 
-function applyEcosystemGrowthLevel(level) {
-  const active = new Set();
-  for (const step of ECOSYSTEM_VISUAL_STEPS) {
-    if (level >= step.minLevel) step.groups.forEach((id) => active.add(id));
+function treeSetupCanvas(canvas, cssW, cssH) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
+
+function treeDrawBlob(ctx, cx, cy, r, jitter, points, rand, fill, squash) {
+  squash = squash === undefined ? 0.62 : squash;
+  const pts = [];
+  for (let i = 0; i < points; i++) {
+    const angle = (i / points) * Math.PI * 2;
+    const rr = r + (rand() - 0.5) * 2 * jitter;
+    pts.push([cx + Math.cos(angle) * rr, cy + Math.sin(angle) * rr * squash]);
   }
-  for (const [id, ceilingLevel] of Object.entries(ECOSYSTEM_SUPPRESSED_ABOVE)) {
-    if (level > ceilingLevel) active.delete(id);
+  ctx.beginPath();
+  ctx.moveTo((pts[0][0] + pts[pts.length - 1][0]) / 2, (pts[0][1] + pts[pts.length - 1][1]) / 2);
+  for (let i = 0; i < pts.length; i++) {
+    const next = pts[(i + 1) % pts.length];
+    ctx.quadraticCurveTo(pts[i][0], pts[i][1], (pts[i][0] + next[0]) / 2, (pts[i][1] + next[1]) / 2);
   }
-  for (const id of ALL_ECOSYSTEM_GROUP_IDS) {
-    const el = document.getElementById(id);
-    if (el) el.style.display = active.has(id) ? "" : "none";
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+}
+
+function treeDirShade(angle, lightAngle, strength) {
+  return Math.cos(angle - lightAngle) * (strength === undefined ? 0.24 : strength);
+}
+
+function treeDrawLeafCluster(ctx, cx, cy, r, rand, ramp) {
+  ctx.save();
+  ctx.globalAlpha = 0.12;
+  treeDrawBlob(ctx, cx, cy + r * 0.22, r * 0.85, r * 0.12, 7, rand, "#000000", 0.3);
+  ctx.restore();
+  treeDrawBlob(ctx, cx, cy, r, r * 0.24, 8, rand, ramp[0], 0.66);
+  treeDrawBlob(ctx, cx - r * 0.1, cy - r * 0.12, r * 0.72, r * 0.2, 8, rand, ramp[1], 0.62);
+  treeDrawBlob(ctx, cx - r * 0.2, cy - r * 0.24, r * 0.4, r * 0.14, 7, rand, ramp[2], 0.56);
+}
+
+function treeBuildBranch(x, y, angle, len, width, depth, cfg, rand, segments, leafAnchors) {
+  const midAngle = angle + (rand() - 0.5) * 0.3;
+  const endX = x + Math.cos(angle) * len;
+  const endY = y + Math.sin(angle) * len;
+  const midX = (x + endX) / 2 + Math.cos(midAngle + Math.PI / 2) * len * 0.12 * (rand() - 0.5);
+  const midY = (y + endY) / 2 + Math.sin(midAngle + Math.PI / 2) * len * 0.12 * (rand() - 0.5);
+  segments.push({ x, y, midX, midY, endX, endY, angle, width, depth });
+
+  if (depth >= cfg.leafFromDepth) {
+    leafAnchors.push({ x: treeLerp(x, endX, 0.5 + rand() * 0.3), y: treeLerp(y, endY, 0.5 + rand() * 0.3), depth, size: width });
+    leafAnchors.push({ x: endX, y: endY, depth, size: width });
   }
+  if (depth >= cfg.maxDepth) return;
+  const branchCount = depth === 0 ? 2 + Math.floor(rand() * 2) : 2 + (rand() > 0.55 ? 1 : 0);
+  for (let i = 0; i < branchCount; i++) {
+    const spread = 0.42 + rand() * 0.32;
+    const childAngle = angle + (i - (branchCount - 1) / 2) * spread;
+    treeBuildBranch(endX, endY, childAngle, len * (0.64 + rand() * 0.12), width * 0.56, depth + 1, cfg, rand, segments, leafAnchors);
+  }
+}
+
+function treeStrokeSegment(ctx, seg, cfg, alpha) {
+  const s = treeDirShade(seg.angle, cfg.lightAngle);
+  ctx.save();
+  if (alpha !== undefined) ctx.globalAlpha = alpha;
+  ctx.strokeStyle = treeShade(cfg.barkColor, s - seg.depth * 0.02);
+  ctx.lineWidth = Math.max(0.8, seg.width);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(seg.x, seg.y);
+  ctx.quadraticCurveTo(seg.midX, seg.midY, seg.endX, seg.endY);
+  ctx.stroke();
+  if (seg.width > 2 && s > 0.02) {
+    ctx.globalAlpha = Math.min(0.4, s * 1.4) * (alpha === undefined ? 1 : alpha);
+    ctx.strokeStyle = cfg.rimColor;
+    ctx.lineWidth = Math.max(0.5, seg.width * 0.22);
+    const off = Math.cos(cfg.lightAngle + Math.PI / 2) * seg.width * 0.32;
+    const offY = Math.sin(cfg.lightAngle + Math.PI / 2) * seg.width * 0.32;
+    ctx.beginPath();
+    ctx.moveTo(seg.x + off, seg.y + offY);
+    ctx.quadraticCurveTo(seg.midX + off, seg.midY + offY, seg.endX + off, seg.endY + offY);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function treeLeafKeepProbability(health) {
+  return Math.pow(Math.max(0, health), 0.6) * 0.94;
+}
+
+function treeDrawCrown(ctx, baseX, baseY, angle0, len0, width0, cfg, rand) {
+  const segments = [], leafAnchors = [];
+  treeBuildBranch(baseX, baseY, angle0, len0, width0, 0, cfg, rand, segments, leafAnchors);
+
+  const fillerCount = Math.round(leafAnchors.length * (0.9 + cfg.canopyDensity * 1.6));
+  const filler = [];
+  for (let i = 0; i < fillerCount; i++) {
+    const base = leafAnchors[Math.floor(rand() * leafAnchors.length)];
+    filler.push({
+      x: base.x + (rand() - 0.5) * width0 * 5.2,
+      y: base.y + (rand() - 0.5) * len0 * 0.22,
+      depth: base.depth,
+      size: base.size * (0.55 + rand() * 0.75),
+    });
+  }
+  const allAnchors = leafAnchors.concat(filler);
+  const keep = treeLeafKeepProbability(cfg.health);
+  const majorCutoff = Math.max(0, cfg.maxDepth - 2);
+
+  if (cfg.health > 0.05) {
+    allAnchors.forEach((a) => {
+      if (rand() < keep * 0.95) treeDrawLeafCluster(ctx, a.x, a.y, a.size * cfg.canopyDensity * 2.6, rand, cfg.leafRamp.bg);
+    });
+  }
+  segments.filter((s) => s.depth <= majorCutoff).forEach((seg) => treeStrokeSegment(ctx, seg, cfg));
+  if (cfg.health > 0.05) {
+    allAnchors.forEach((a) => {
+      if (rand() < keep) treeDrawLeafCluster(ctx, a.x, a.y, a.size * cfg.canopyDensity * 2.1, rand, cfg.leafRamp.mid);
+    });
+  }
+  segments.filter((s) => s.depth > majorCutoff).forEach((seg) => treeStrokeSegment(ctx, seg, cfg, 0.5));
+  if (cfg.health > 0.05) {
+    allAnchors.forEach((a) => {
+      const lit = treeDirShade(Math.atan2(a.y - baseY, a.x - baseX), cfg.lightAngle) > 0;
+      if (lit && rand() < keep * 0.55) treeDrawLeafCluster(ctx, a.x, a.y, a.size * cfg.canopyDensity * 1.5, rand, cfg.leafRamp.fg);
+    });
+  }
+}
+
+function treeDrawTrunk(ctx, cx, baseY, height, baseWidth, rand, cfg) {
+  const segs = 9;
+  const left = [], right = [];
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs;
+    const y = baseY - height * t;
+    const w = baseWidth * (1 - t * 0.72) * (1 + (rand() - 0.5) * 0.1);
+    const bulge = Math.sin(t * Math.PI * 2.4 + cfg.seed) * baseWidth * 0.05 * (1 - t * 0.6);
+    left.push([cx - w / 2 + bulge, y]);
+    right.push([cx + w / 2 + bulge, y]);
+  }
+  ctx.beginPath();
+  ctx.moveTo(left[0][0], left[0][1]);
+  left.forEach((p) => ctx.lineTo(p[0], p[1]));
+  for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i][0], right[i][1]);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(cx - baseWidth / 2, 0, cx + baseWidth / 2, 0);
+  const litSide = Math.cos(cfg.lightAngle) > 0;
+  grad.addColorStop(litSide ? 0 : 1, treeShade(cfg.barkColor, -0.32));
+  grad.addColorStop(0.5, cfg.barkColor);
+  grad.addColorStop(litSide ? 1 : 0, treeShade(cfg.barkColor, 0.16));
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  const striations = Math.round(baseWidth * 0.7);
+  for (let i = 0; i < striations; i++) {
+    const t = rand();
+    const x = cx - baseWidth / 2 + t * baseWidth;
+    ctx.strokeStyle = rand() > 0.45 ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.045)";
+    ctx.lineWidth = 0.5 + rand() * 0.7;
+    ctx.beginPath();
+    ctx.moveTo(x, baseY - 2);
+    ctx.lineTo(x + (rand() - 0.5) * 5, baseY - height * (0.25 + rand() * 0.6));
+    ctx.stroke();
+  }
+  if (cfg.knot) {
+    const ky = baseY - height * 0.32;
+    treeDrawBlob(ctx, cx + baseWidth * 0.1, ky, baseWidth * 0.16, baseWidth * 0.04, 7, rand, treeShade(cfg.barkColor, -0.5), 0.8);
+    treeDrawBlob(ctx, cx + baseWidth * 0.1, ky, baseWidth * 0.08, baseWidth * 0.02, 6, rand, "#0a0806", 0.75);
+  }
+}
+
+function treeDrawRoots(ctx, cx, baseY, spread, count, rand, cfg) {
+  for (let i = 0; i < count; i++) {
+    const t = count === 1 ? 0.5 : i / (count - 1);
+    const angle = Math.PI * 0.15 + t * Math.PI * 0.7;
+    const len = spread * (0.55 + rand() * 0.5);
+    const endX = cx + Math.cos(angle) * len;
+    const endY = baseY + Math.sin(angle) * len * 0.38;
+    const s = treeDirShade(angle, cfg.lightAngle, 0.16);
+    ctx.strokeStyle = treeShade(cfg.barkColor, s - 0.14);
+    ctx.lineWidth = Math.max(1.4, spread * 0.05 * (1 - t * 0.2));
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(cx, baseY - 2);
+    ctx.quadraticCurveTo(cx + Math.cos(angle) * len * 0.45, baseY + 3, endX, endY);
+    ctx.stroke();
+    if (cfg.moss && rand() > 0.5) {
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      treeDrawBlob(ctx, treeLerp(cx, endX, 0.4), treeLerp(baseY, endY, 0.4), 3 + rand() * 2, 1, 6, rand, cfg.mossColor, 0.5);
+      ctx.restore();
+    }
+  }
+}
+
+function treeDrawSeed(ctx, cx, cy, r, rand) {
+  const grad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  grad.addColorStop(0, "#3a2f22");
+  grad.addColorStop(1, "#17110a");
+  treeDrawBlob(ctx, cx, cy, r, r * 0.1, 7, rand, grad, 0.8);
+}
+
+const TREE_PALETTES = {
+  day:   { sky: ["#6c7566", "#5f665b", "#4c5245"], vignette: 0.34, lightColor: "230,232,222", rimColor: "#d8c79a", starLevel: 0 },
+  dusk:  { sky: ["#2c2f38", "#25272e", "#1c1d21"], vignette: 0.4,  lightColor: "180,190,205", rimColor: "#c9a568", starLevel: 0 },
+  night: { sky: ["#07080c", "#0d1016", "#12151c"], vignette: 0.5,  lightColor: "170,190,215", rimColor: "#b9a06a", starLevel: 1 },
+};
+const TREE_LEAF_RAMP = {
+  bg: ["#0c130d", "#172018", "#232e24"],
+  mid: ["#152417", "#223a25", "#374d33"],
+  fg: ["#233a26", "#374d34", "#4d5f3f"],
+};
+const TREE_STAGES = [
+  { key: "empty", heightFrac: 0, widthFrac: 0 },
+  { key: "seed", heightFrac: 0, widthFrac: 0, seedOnly: true },
+  { key: "sprout", heightFrac: 0.1, widthFrac: 0.006, sprout: true },
+  { key: "seedling", maxDepth: 1, leafFromDepth: 0, heightFrac: 0.18, widthFrac: 0.013, roots: 0, canopyDensity: 0.7 },
+  { key: "sapling", maxDepth: 2, leafFromDepth: 0, heightFrac: 0.28, widthFrac: 0.02, roots: 3, canopyDensity: 0.85 },
+  { key: "young", maxDepth: 2, leafFromDepth: 0, heightFrac: 0.35, widthFrac: 0.027, roots: 4, canopyDensity: 0.95 },
+  { key: "growing", maxDepth: 3, leafFromDepth: 1, heightFrac: 0.43, widthFrac: 0.037, roots: 4, canopyDensity: 1.05 },
+  { key: "mature", maxDepth: 3, leafFromDepth: 1, heightFrac: 0.5, widthFrac: 0.05, roots: 5, canopyDensity: 1.15, knot: true },
+  { key: "ancient", maxDepth: 4, leafFromDepth: 2, heightFrac: 0.56, widthFrac: 0.07, roots: 6, canopyDensity: 1.3, knot: true, moss: true, forest: true },
+];
+
+function treeTimeOfDay() {
+  const hour = new Date().getHours();
+  if (hour < 6 || hour >= 21) return "night";
+  if (hour >= 18) return "dusk";
+  return "day";
+}
+
+function renderEcosystemTree(canvas, growthLevel, opts) {
+  opts = opts || {};
+  const stage = TREE_STAGES[Math.max(0, Math.min(TREE_STAGES.length - 1, growthLevel))];
+  const cssW = canvas.clientWidth || 260, cssH = Math.round(cssW * (280 / 260));
+  const ctx = treeSetupCanvas(canvas, cssW, cssH);
+  const w = cssW, h = cssH;
+  const rand = treeMulberry32(growthLevel * 97 + 13);
+  const tod = opts.timeOfDay || treeTimeOfDay();
+  const pal = TREE_PALETTES[tod];
+  const groundY = h * 0.86;
+
+  ctx.clearRect(0, 0, w, h);
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, pal.sky[0]);
+  sky.addColorStop(0.55, pal.sky[1]);
+  sky.addColorStop(1, pal.sky[2]);
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+
+  if (pal.starLevel) {
+    const sr = treeMulberry32(growthLevel * 41 + 5);
+    for (let i = 0; i < 26; i++) {
+      ctx.globalAlpha = 0.25 + sr() * 0.5;
+      ctx.fillStyle = "#dfe6f2";
+      ctx.fillRect(sr() * w, sr() * h * 0.5, 1, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (tod !== "day") {
+    const lightX = w * 0.82, lightY = h * 0.16;
+    const glow = ctx.createRadialGradient(lightX, lightY, 0, lightX, lightY, w * 0.28);
+    glow.addColorStop(0, "rgba(" + pal.lightColor + ",0.28)");
+    glow.addColorStop(1, "rgba(" + pal.lightColor + ",0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  const groundGrad = ctx.createLinearGradient(0, groundY, 0, h);
+  groundGrad.addColorStop(0, "#15130f");
+  groundGrad.addColorStop(1, "#080705");
+  ctx.beginPath();
+  ctx.moveTo(0, groundY + 4);
+  for (let x = 0; x <= w; x += w / 12) ctx.lineTo(x, groundY + Math.sin(x * 0.02 + growthLevel) * 3);
+  ctx.lineTo(w, h);
+  ctx.lineTo(0, h);
+  ctx.closePath();
+  ctx.fillStyle = groundGrad;
+  ctx.fill();
+
+  const cfg = {
+    seed: growthLevel,
+    barkColor: "#241c14",
+    rimColor: pal.rimColor,
+    lightAngle: -Math.PI * 0.32,
+    maxDepth: stage.maxDepth,
+    leafFromDepth: stage.leafFromDepth,
+    canopyDensity: stage.canopyDensity,
+    leafRamp: TREE_LEAF_RAMP,
+    knot: stage.knot,
+    moss: stage.moss,
+    mossColor: "#3c4535",
+    health: opts.health === undefined ? 1 : opts.health,
+  };
+
+  const cx = w * 0.5;
+  const treeH = h * stage.heightFrac;
+  const baseW = w * stage.widthFrac;
+
+  if (treeH > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    const shadowOff = -Math.cos(cfg.lightAngle) * treeH * 0.18;
+    treeDrawBlob(ctx, cx + shadowOff, groundY + 3, baseW * 1.6, baseW * 0.3, 7, rand, "#000000", 0.22);
+    ctx.restore();
+  }
+
+  if (stage.seedOnly) {
+    treeDrawSeed(ctx, cx, groundY - 2, w * 0.02, rand);
+  } else if (stage.sprout) {
+    ctx.strokeStyle = treeShade(cfg.leafRamp.mid[2], -0.1);
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(cx, groundY);
+    ctx.quadraticCurveTo(cx - 3, groundY - treeH * 0.6, cx + 1, groundY - treeH);
+    ctx.stroke();
+    treeDrawLeafCluster(ctx, cx + 1, groundY - treeH, w * 0.016, rand, cfg.leafRamp.mid);
+    if (rand() > 0.35) treeDrawLeafCluster(ctx, cx - 2, groundY - treeH * 0.82, w * 0.011, rand, cfg.leafRamp.fg);
+  } else if (treeH > 0) {
+    if (stage.roots) treeDrawRoots(ctx, cx, groundY, baseW * 2.2, stage.roots, rand, cfg);
+    treeDrawTrunk(ctx, cx, groundY, treeH, baseW, rand, cfg);
+    const primaryAngle = cfg.lightAngle > -Math.PI / 2 ? -Math.PI / 2 - 0.05 : -Math.PI / 2 + 0.05;
+    treeDrawCrown(ctx, cx, groundY - treeH, primaryAngle, treeH * 0.62, Math.max(2, baseW * 0.34), cfg, rand);
+  }
+
+  if (stage.forest) {
+    const positions = [[-0.32, 0.72], [0.3, 0.68], [-0.2, 0.6]];
+    positions.forEach((p, i) => {
+      const sRand = treeMulberry32(growthLevel * 131 + i * 7);
+      const scfg = Object.assign({}, cfg, {
+        seed: growthLevel * 131 + i * 7, maxDepth: 2, leafFromDepth: 0, canopyDensity: 0.6, knot: false, moss: false,
+      });
+      const scx = cx + w * p[0], sBaseY = groundY - h * 0.02 * i;
+      const sH = treeH * (0.42 + p[1] * 0.15);
+      const sW = baseW * 0.4;
+      ctx.save();
+      ctx.filter = "blur(1.4px)";
+      ctx.globalAlpha = 0.68 - i * 0.08;
+      treeDrawTrunk(ctx, scx, sBaseY, sH, sW, sRand, scfg);
+      treeDrawCrown(ctx, scx, sBaseY - sH, -Math.PI / 2, sH * 0.6, Math.max(1.6, sW * 0.34), scfg, sRand);
+      ctx.restore();
+    });
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    treeDrawBlob(ctx, w * 0.3, groundY - h * 0.05, w * 0.34, 8, 7, rand, "#c7cdd6", 0.28);
+    treeDrawBlob(ctx, w * 0.7, groundY - h * 0.02, w * 0.3, 8, 7, rand, "#c7cdd6", 0.26);
+    ctx.restore();
+  }
+
+  const key = ctx.createLinearGradient(w, 0, w * 0.3, h * 0.7);
+  key.addColorStop(0, "rgba(" + pal.lightColor + ",0.1)");
+  key.addColorStop(1, "rgba(" + pal.lightColor + ",0)");
+  ctx.fillStyle = key;
+  ctx.fillRect(0, 0, w, h);
+
+  const gr = treeMulberry32(growthLevel * 7 + 3);
+  for (let i = 0; i < 100; i++) {
+    ctx.fillStyle = gr() > 0.5 ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.035)";
+    ctx.fillRect(gr() * w, gr() * h, 1, 1);
+  }
+
+  const vg = ctx.createRadialGradient(w / 2, h * 0.4, h * 0.15, w / 2, h * 0.5, h * 0.9);
+  vg.addColorStop(0, "rgba(0,0,0,0)");
+  vg.addColorStop(1, "rgba(0,0,0," + pal.vignette + ")");
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, w, h);
 }
 
 function renderEcosystemPreview(containerEl, data) {
@@ -605,7 +852,8 @@ function renderEcosystemPreview(containerEl, data) {
     </div>
   `;
   const scene = document.getElementById("ecosystem-scene");
-  applyEcosystemGrowthLevel(data.growth_level);
+  const canvas = document.getElementById("ecosystem-canvas");
+  renderEcosystemTree(canvas, data.growth_level);
   scene.classList.remove("eco-grow-pop");
   void scene.offsetWidth;
   scene.classList.add("eco-grow-pop");
