@@ -460,10 +460,64 @@
     .app-layout { grid-template-columns: 1fr; }
     .ecosystem-panel { position: static; order: -1; }
   }
+
+  /* --- Neko: a purely-for-fun cat that wanders the page and reacts to the cursor --- */
+  .neko-toggle-btn {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 50;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    opacity: 0.55;
+  }
+  .neko-toggle-btn.active { opacity: 1; }
+  .neko-cat {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 45;
+    font-size: 26px;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+    transition: transform 0.15s ease;
+    display: none;
+  }
+  .neko-cat.visible { display: block; }
+  .neko-cat.face-left { transform: scaleX(-1); }
+  .neko-cat.idle { animation: neko-idle 2.6s ease-in-out infinite; }
+  @keyframes neko-idle {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.94); }
+  }
+  .neko-cat.face-left.idle { animation: neko-idle-left 2.6s ease-in-out infinite; }
+  @keyframes neko-idle-left {
+    0%, 100% { transform: scaleX(-1) scaleY(1); }
+    50% { transform: scaleX(-1) scaleY(0.94); }
+  }
+  .neko-cat.startled { animation: neko-startled 0.4s ease; }
+  @keyframes neko-startled {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+  }
 </style>
 </head>
 <body>
 <button type="button" class="theme-toggle-btn" id="theme-toggle-btn" title="Temayı değiştir">🌙</button>
+<button type="button" class="neko-toggle-btn" id="neko-toggle-btn" title="Kediyi göster/gizle">🐈</button>
+<div class="neko-cat" id="neko-cat">🐈</div>
 <div class="wrap">
 
   <div id="login-view">
@@ -779,6 +833,119 @@ themeToggleBtn.addEventListener("click", () => {
   const isDark = document.documentElement.getAttribute("data-theme") === "dark";
   applyTheme(isDark ? "soft" : "dark");
 });
+
+// --- Neko: a purely decorative cat that wanders the page, idles/"watches" the
+// cursor, and gets startled (runs off) when the cursor gets close. No functional
+// purpose - just an easter egg, fully toggleable and off by default under
+// prefers-reduced-motion.
+(function initNeko() {
+  const cat = document.getElementById("neko-cat");
+  const toggleBtn = document.getElementById("neko-toggle-btn");
+  const CAT_SIZE = 26;
+  const DISTURB_RADIUS = 80;
+  const reducesMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  let enabled = localStorage.getItem("neko_enabled") !== "off" && !reducesMotion;
+  let pos = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
+  let target = { ...pos };
+  let mouse = { x: -9999, y: -9999 };
+  let mode = "idle"; // "idle" | "walking" | "startled"
+  let idleUntil = 0;
+  let rafId = null;
+
+  function clampToViewport(p) {
+    const maxX = Math.max(0, window.innerWidth - CAT_SIZE);
+    const maxY = Math.max(0, window.innerHeight - CAT_SIZE);
+    return { x: Math.min(Math.max(p.x, 0), maxX), y: Math.min(Math.max(p.y, 0), maxY) };
+  }
+
+  function pickNewTarget(awayFrom) {
+    let candidate;
+    do {
+      candidate = clampToViewport({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+      });
+    } while (awayFrom && Math.hypot(candidate.x - awayFrom.x, candidate.y - awayFrom.y) < 150);
+    target = candidate;
+    mode = "walking";
+  }
+
+  function updateFacing(dx) {
+    if (dx < -0.5) cat.classList.add("face-left");
+    else if (dx > 0.5) cat.classList.remove("face-left");
+  }
+
+  function tick() {
+    if (!enabled) { rafId = null; return; }
+
+    const distToMouse = Math.hypot(pos.x - mouse.x, pos.y - mouse.y);
+    if (distToMouse < DISTURB_RADIUS && mode !== "startled") {
+      mode = "startled";
+      cat.classList.remove("idle");
+      cat.classList.remove("startled");
+      void cat.offsetWidth;
+      cat.classList.add("startled");
+      pickNewTarget(mouse);
+    }
+
+    if (mode === "walking" || mode === "startled") {
+      const dx = target.x - pos.x;
+      const dy = target.y - pos.y;
+      const dist = Math.hypot(dx, dy);
+      const speed = mode === "startled" ? 4.2 : 1.6;
+      if (dist < speed) {
+        pos = { ...target };
+        mode = "idle";
+        idleUntil = performance.now() + 1500 + Math.random() * 2500;
+        cat.classList.remove("startled");
+        cat.classList.add("idle");
+      } else {
+        updateFacing(dx);
+        pos = { x: pos.x + (dx / dist) * speed, y: pos.y + (dy / dist) * speed };
+      }
+    } else if (mode === "idle" && performance.now() > idleUntil) {
+      updateFacing(mouse.x - pos.x); // face the cursor while deciding where to wander next, i.e. "watch" it
+      pickNewTarget();
+      cat.classList.remove("idle");
+    }
+
+    cat.style.left = `${pos.x}px`;
+    cat.style.top = `${pos.y}px`;
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function start() {
+    if (rafId !== null) return;
+    cat.classList.add("visible", "idle");
+    idleUntil = performance.now() + 800;
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function stop() {
+    if (rafId !== null) cancelAnimationFrame(rafId);
+    rafId = null;
+    cat.classList.remove("visible", "idle", "startled");
+  }
+
+  function setEnabled(next) {
+    enabled = next;
+    localStorage.setItem("neko_enabled", enabled ? "on" : "off");
+    toggleBtn.classList.toggle("active", enabled);
+    if (enabled) start(); else stop();
+  }
+
+  document.addEventListener("mousemove", (e) => {
+    mouse = { x: e.clientX, y: e.clientY };
+  });
+  window.addEventListener("resize", () => {
+    pos = clampToViewport(pos);
+  });
+  toggleBtn.addEventListener("click", () => setEnabled(!enabled));
+
+  setEnabled(enabled);
+})();
 
 const CATEGORIES = [
   "Sağlık", "Spor & Fitness", "Zihin & Ruh Sağlığı", "Kişisel Bakım", "Üretkenlik",
