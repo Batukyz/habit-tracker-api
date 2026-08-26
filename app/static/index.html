@@ -161,6 +161,17 @@
   .overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
   .overview-value { font-size: 22px; font-weight: 700; color: var(--accent); }
   .overview-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .growth-row { display: flex; align-items: center; gap: 16px; }
+  .growth-emoji { font-size: 40px; line-height: 1; flex: none; transition: transform 0.3s ease; }
+  .growth-emoji.pop { animation: growth-pop 0.6s ease; }
+  @keyframes growth-pop {
+    0% { transform: scale(1) rotate(0deg); }
+    40% { transform: scale(1.35) rotate(-4deg); }
+    70% { transform: scale(0.95) rotate(2deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+  .growth-label { font-weight: 700; font-size: 15px; }
+  .growth-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .event-row {
     display: flex;
     align-items: center;
@@ -398,6 +409,16 @@
     </div>
 
     <div class="card">
+      <div class="growth-row">
+        <div class="growth-emoji" id="growth-emoji">🕳️</div>
+        <div>
+          <div class="growth-label" id="growth-label">Henüz başlamadın</div>
+          <div class="growth-sub" id="growth-sub">En uzun serin: 0 gün</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="overview-grid">
         <div class="overview-stat">
           <div class="overview-value" id="overview-streak">–</div>
@@ -577,6 +598,29 @@ const CATEGORIES = [
   "Finans", "Öğrenme & Gelişim", "Hobi & Yaratıcılık", "Ev & Düzen", "Sosyal & İlişkiler",
 ];
 
+const GROWTH_STAGES = [
+  { minDays: 0, emoji: "🕳️", label: "Henüz başlamadın" },
+  { minDays: 1, emoji: "🌰", label: "Tohum" },
+  { minDays: 3, emoji: "🌱", label: "Filiz" },
+  { minDays: 7, emoji: "🌿", label: "Fidan" },
+  { minDays: 14, emoji: "🌳", label: "Ağaç" },
+  { minDays: 30, emoji: "🌲🌳🌲", label: "Orman" },
+];
+
+function getGrowthStage(days) {
+  let stage = GROWTH_STAGES[0];
+  let index = 0;
+  for (let i = 0; i < GROWTH_STAGES.length; i++) {
+    if (days >= GROWTH_STAGES[i].minDays) {
+      stage = GROWTH_STAGES[i];
+      index = i;
+    }
+  }
+  return { ...stage, index };
+}
+
+let lastGrowthStageIndex = null;
+
 const CATEGORY_ICONS = {
   "Sağlık": "🩺",
   "Spor & Fitness": "💪",
@@ -745,6 +789,22 @@ async function loadOverview() {
   document.getElementById("overview-checkins").textContent =
     `${data.checked_in_today}/${data.active_habits}`;
   document.getElementById("overview-overdue").textContent = data.overdue_events;
+  renderGrowth(data.best_current_streak);
+}
+
+function renderGrowth(streakDays) {
+  const stage = getGrowthStage(streakDays);
+  const emojiEl = document.getElementById("growth-emoji");
+  emojiEl.textContent = stage.emoji;
+  document.getElementById("growth-label").textContent = stage.label;
+  document.getElementById("growth-sub").textContent = `En uzun serin: ${streakDays} gün`;
+
+  if (lastGrowthStageIndex !== null && stage.index > lastGrowthStageIndex) {
+    emojiEl.classList.remove("pop");
+    void emojiEl.offsetWidth; // restart the animation
+    emojiEl.classList.add("pop");
+  }
+  lastGrowthStageIndex = stage.index;
 }
 
 document.getElementById("show-register").addEventListener("click", () => {

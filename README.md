@@ -240,10 +240,14 @@ için genel bir üst sınır (dakikada 200 istek) var.
 | GET | `/overview` | Genel özet: aktif habit sayısı, bugün tamamlanan, en uzun güncel seri, bugünkü/geciken planlar | Evet |
 
 `Habit`, tekrar eden bir alışkanlık; `Event` ise "24 Ağustos'ta toplantım var"
-gibi **tek seferlik, belirli bir tarihe bağlı bir plan/görev**. Web arayüzünde
-"Habit'lerim" ekranının en üstünde üç sayılık bir **özet paneli** var (en uzun
-güncel seri, bugün kaç habit tamamlandı, kaç geciken plan var) — `GET /overview`
-ile besleniyor, her check-in/arşivleme/plan işleminde otomatik güncellenir.
+gibi **tek seferlik, belirli bir tarihe bağlı bir plan/görev**. Web arayüzünün
+en üstünde, en uzun güncel serine göre büyüyen bir **bitki görseli** var:
+🕳️ (0 gün) → 🌰 Tohum (1+) → 🌱 Filiz (3+) → 🌿 Fidan (7+) → 🌳 Ağaç (14+) →
+🌲🌳🌲 Orman (30+). Yeni bir aşamaya geçince küçük bir "pop" animasyonu oynar.
+Altında üç sayılık bir **özet paneli** var (en uzun güncel seri, bugün kaç
+habit tamamlandı, kaç geciken plan var) — `GET /overview` ile besleniyor, her
+check-in/arşivleme/plan işleminde otomatik güncellenir (bitki görseli de aynı
+veriden besleniyor, ayrı bir endpoint gerekmiyor).
 Altında üç bölüm var: **"⏰ Geciken planlar"** (tarihi geçmiş ama tamamlandı
 işaretlenmemiş planlar — sadece böyle bir plan varsa görünür, hiçbiri sessizce
 kaybolmaz), **"📅 Bugün yapmam gerekenler"** (bugüne ait planlar, işaretleyerek
