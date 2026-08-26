@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yönetici Paneli</title>
+<script>
+  (function () {
+    if (localStorage.getItem("theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  })();
+</script>
+<style>
+  :root {
+    --bg: #eef0f7;
+    --card: #ffffff;
+    --input-bg: #f1f2f8;
+    --border: #e1e3ed;
+    --text: #23252b;
+    --muted: #7b7e8c;
+    --accent: #6c5ce7;
+    --accent-hover: #5a4bd1;
+    --on-accent: #ffffff;
+    --secondary: #e8114a;
+    --secondary-hover: #c90f3f;
+    --danger: #e8114a;
+    --danger-hover: #c90f3f;
+    --success: #4ade80;
+    --on-success: #0f3d22;
+    --gradient: linear-gradient(135deg, var(--accent), var(--secondary));
+  }
+  [data-theme="dark"] {
+    --bg: #16171d;
+    --card: #21222c;
+    --input-bg: #1c1d26;
+    --border: #33343f;
+    --text: #ededf2;
+    --muted: #9294a3;
+    --accent: #8c7ff5;
+    --accent-hover: #a296f8;
+    --on-accent: #15181c;
+    --secondary: #ff6b85;
+    --secondary-hover: #ff8299;
+    --danger: #ff6b85;
+    --danger-hover: #ff8299;
+    --success: #34d399;
+    --on-success: #0f3d22;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 22px; font-weight: 700; margin: 0 0 24px; letter-spacing: -0.01em; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: 14px;
+  }
+  input:focus { outline: none; border-color: var(--accent); }
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background-color 0.15s ease, opacity 0.15s ease, filter 0.15s ease;
+  }
+  .btn-primary { background: var(--gradient); color: var(--on-accent); width: 100%; }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-ghost { background: transparent; color: var(--muted); font-weight: 400; font-size: 13px; text-decoration: none; display: inline-block; }
+  .btn-ghost:hover { color: var(--text); }
+  .btn-small { padding: 6px 10px; font-size: 12px; }
+  .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn-danger:disabled, button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .row { display: flex; gap: 8px; align-items: flex-start; }
+  .row input { margin-bottom: 0; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .section-title { font-weight: 700; font-size: 14px; margin-bottom: 12px; }
+  .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 20px 0; }
+  #unauthorized-view, #admin-view { display: none; }
+  .theme-toggle-btn {
+    position: fixed; top: 16px; right: 16px; z-index: 50;
+    background: var(--card); border: 1px solid var(--border); border-radius: 999px;
+    width: 40px; height: 40px; padding: 0; font-size: 17px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab-btn {
+    background: var(--card); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600;
+  }
+  .tab-btn.active { background: var(--gradient); color: var(--on-accent); border-color: transparent; }
+  .admin-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .admin-stat-card { text-align: center; padding: 12px; border-radius: 12px; background: var(--input-bg); }
+  .admin-stat-value { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .admin-stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .list-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .list-row:last-child { border-bottom: none; }
+  .list-row-title { font-size: 14px; font-weight: 600; }
+  .list-row-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .badge {
+    font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+    background: var(--accent); color: var(--on-accent); white-space: nowrap;
+  }
+  .badge-muted { background: var(--input-bg); color: var(--muted); border: 1px solid var(--border); }
+  .override-controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+  .override-controls input { width: 80px; margin-bottom: 0; flex: none; }
+  .preview-progress-track { height: 6px; border-radius: 999px; background: var(--border); margin-top: 10px; overflow: hidden; }
+  .preview-progress-fill { height: 100%; background: var(--gradient); border-radius: 999px; }
+  .error { color: var(--danger); font-size: 13px; margin: -6px 0 14px; min-height: 1em; }
+</style>
+</head>
+<body>
+<button type="button" class="theme-toggle-btn" id="theme-toggle-btn" title="Temayı değiştir">🌙</button>
+<div class="wrap">
+
+  <div id="unauthorized-view">
+    <h1>Yetkisiz Erişim</h1>
+    <p style="color: var(--muted); font-size: 14px;">Bu sayfayı görüntülemek için yönetici yetkisine sahip olmalısın.</p>
+    <a class="btn-ghost" href="/app/">← Uygulamaya dön</a>
+  </div>
+
+  <div id="admin-view">
+    <div class="topbar">
+      <h1>🛡️ Yönetici Paneli</h1>
+      <a class="btn-ghost" href="/app/">← Uygulamaya dön</a>
+    </div>
+
+    <div class="tabs">
+      <button type="button" class="tab-btn active" data-tab="overview">Genel Bakış</button>
+      <button type="button" class="tab-btn" data-tab="milestones">Büyüme Kuralları</button>
+      <button type="button" class="tab-btn" data-tab="preview">Önizleme</button>
+      <button type="button" class="tab-btn" data-tab="users">Kullanıcılar</button>
+    </div>
+
+    <div class="tab-panel" id="tab-overview">
+      <div class="card">
+        <div class="section-title">Ekosistem Genel Bakış</div>
+        <div class="admin-stat-grid" id="overview-stats"></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-milestones" style="display:none">
+      <div class="card">
+        <div class="section-title" id="milestone-form-title">Kilometre Taşı Ekle</div>
+        <form id="milestone-form">
+          <input type="hidden" id="milestone-edit-id">
+          <label>Eşik (gün)</label>
+          <input id="milestone-threshold" type="number" min="0" required>
+          <label>Aşama anahtarı (stage_key)</label>
+          <input id="milestone-stage-key" type="text" placeholder="örn: young_plant" required>
+          <label>Görünen isim</label>
+          <input id="milestone-name" type="text" placeholder="örn: Genç Bitki" required>
+          <label>Açıklama (opsiyonel)</label>
+          <input id="milestone-description" type="text">
+          <div class="error" id="milestone-error"></div>
+          <div class="row">
+            <button type="submit" class="btn-primary" id="milestone-submit-btn">Ekle</button>
+            <button type="button" class="btn-ghost" id="milestone-cancel-btn" style="display:none; flex:none;">İptal</button>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="section-title">Mevcut Kilometre Taşları</div>
+        <div id="milestones-list"></div>
+        <div class="empty" id="milestones-empty" style="display:none">Henüz kilometre taşı yok.</div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-preview" style="display:none">
+      <div class="card">
+        <div class="section-title">Ekosistem Önizleme</div>
+        <p style="color: var(--muted); font-size: 13px; margin-top: -6px;">
+          Belirli bir seri (streak) değeri için ekosistemin hangi aşamada olacağını gör.
+        </p>
+        <div class="row">
+          <input id="preview-streak-input" type="number" min="0" value="7">
+          <button type="button" class="btn-primary" id="preview-btn" style="width:auto; flex:none;">Önizle</button>
+        </div>
+        <div id="preview-result"></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-users" style="display:none">
+      <div class="card">
+        <div class="section-title">Kullanıcılar ve Ekosistemleri</div>
+        <p style="color: var(--muted); font-size: 13px; margin-top: -6px;">
+          Bir kullanıcının serisini geçici olarak simüle ederek ekosistemini test edebilirsin.
+          Gerçek habit verisi değişmez; "Sıfırla" gerçek, hesaplanmış duruma döner.
+        </p>
+        <div id="users-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "";
+
+function getTokens() {
+  return {
+    access: localStorage.getItem("access_token"),
+    refresh: localStorage.getItem("refresh_token"),
+  };
+}
+function setTokens(access, refresh) {
+  localStorage.setItem("access_token", access);
+  localStorage.setItem("refresh_token", refresh);
+}
+function clearTokens() {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+}
+
+async function tryRefresh() {
+  const { refresh } = getTokens();
+  if (!refresh) return false;
+  const response = await fetch(API + "/auth/refresh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refresh }),
+  });
+  if (!response.ok) {
+    clearTokens();
+    return false;
+  }
+  const data = await response.json();
+  setTokens(data.access_token, data.refresh_token);
+  return true;
+}
+
+async function apiFetch(path, options = {}) {
+  const { access } = getTokens();
+  options.headers = Object.assign({}, options.headers, {
+    Authorization: `Bearer ${access}`,
+  });
+  let response = await fetch(API + path, options);
+  if (response.status === 401) {
+    const refreshed = await tryRefresh();
+    if (refreshed) {
+      const { access: newAccess } = getTokens();
+      options.headers.Authorization = `Bearer ${newAccess}`;
+      response = await fetch(API + path, options);
+    } else {
+      window.location.href = "/app/";
+      throw new Error("Oturum süresi doldu");
+    }
+  }
+  return response;
+}
+
+const themeToggleBtn = document.getElementById("theme-toggle-btn");
+function applyTheme(theme) {
+  if (theme === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
+    themeToggleBtn.textContent = "☀️";
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+    themeToggleBtn.textContent = "🌙";
+  }
+  localStorage.setItem("theme", theme);
+}
+applyTheme(localStorage.getItem("theme") === "dark" ? "dark" : "soft");
+themeToggleBtn.addEventListener("click", () => {
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  applyTheme(isDark ? "soft" : "dark");
+});
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str == null ? "" : String(str);
+  return div.innerHTML;
+}
+
+// --- tabs ---
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach((p) => (p.style.display = "none"));
+    btn.classList.add("active");
+    document.getElementById(`tab-${btn.dataset.tab}`).style.display = "block";
+  });
+});
+
+// --- overview ---
+async function loadOverview() {
+  const response = await apiFetch("/admin/ecosystem/overview");
+  if (!response.ok) return;
+  const data = await response.json();
+  const stats = [
+    ["Toplam kullanıcı", data.total_users],
+    ["Aktif ekosistem", data.users_with_active_habits],
+    ["Ort. büyüme seviyesi", data.average_growth_level],
+    ["Ort. en uzun seri", data.average_best_current_streak],
+    ["Toplam büyüme puanı", data.total_growth_points],
+    ["Kilometre taşı sayısı", data.milestone_count],
+  ];
+  document.getElementById("overview-stats").innerHTML = stats.map(([label, value]) => `
+    <div class="admin-stat-card">
+      <div class="admin-stat-value">${escapeHtml(value)}</div>
+      <div class="admin-stat-label">${escapeHtml(label)}</div>
+    </div>
+  `).join("");
+}
+
+// --- milestones ---
+let editingMilestoneId = null;
+
+function resetMilestoneForm() {
+  editingMilestoneId = null;
+  document.getElementById("milestone-form").reset();
+  document.getElementById("milestone-form-title").textContent = "Kilometre Taşı Ekle";
+  document.getElementById("milestone-submit-btn").textContent = "Ekle";
+  document.getElementById("milestone-cancel-btn").style.display = "none";
+  document.getElementById("milestone-error").textContent = "";
+}
+
+async function loadMilestones() {
+  const response = await apiFetch("/admin/ecosystem/milestones");
+  if (!response.ok) return;
+  const milestones = await response.json();
+  const list = document.getElementById("milestones-list");
+  const empty = document.getElementById("milestones-empty");
+  list.innerHTML = "";
+  empty.style.display = milestones.length ? "none" : "block";
+  for (const m of milestones) {
+    const row = document.createElement("div");
+    row.className = "list-row";
+    row.innerHTML = `
+      <div>
+        <div class="list-row-title">${escapeHtml(m.threshold)} gün — ${escapeHtml(m.name)}</div>
+        <div class="list-row-meta">${escapeHtml(m.stage_key)}${m.description ? " · " + escapeHtml(m.description) : ""}</div>
+      </div>
+      <div class="row" style="flex:none;">
+        <button type="button" class="btn-ghost btn-small" data-action="edit">Düzenle</button>
+        <button type="button" class="btn-danger btn-small" data-action="delete">Sil</button>
+      </div>
+    `;
+    row.querySelector('[data-action="edit"]').addEventListener("click", () => {
+      editingMilestoneId = m.id;
+      document.getElementById("milestone-threshold").value = m.threshold;
+      document.getElementById("milestone-stage-key").value = m.stage_key;
+      document.getElementById("milestone-name").value = m.name;
+      document.getElementById("milestone-description").value = m.description || "";
+      document.getElementById("milestone-form-title").textContent = "Kilometre Taşını Düzenle";
+      document.getElementById("milestone-submit-btn").textContent = "Kaydet";
+      document.getElementById("milestone-cancel-btn").style.display = "inline-block";
+    });
+    row.querySelector('[data-action="delete"]').addEventListener("click", async () => {
+      if (!confirm(`"${m.name}" kilometre taşı silinsin mi?`)) return;
+      await apiFetch(`/admin/ecosystem/milestones/${m.id}`, { method: "DELETE" });
+      loadMilestones();
+      loadOverview();
+    });
+    list.appendChild(row);
+  }
+}
+
+document.getElementById("milestone-cancel-btn").addEventListener("click", resetMilestoneForm);
+
+document.getElementById("milestone-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById("milestone-error");
+  errorEl.textContent = "";
+  const payload = {
+    threshold: parseInt(document.getElementById("milestone-threshold").value, 10),
+    stage_key: document.getElementById("milestone-stage-key").value.trim(),
+    name: document.getElementById("milestone-name").value.trim(),
+    description: document.getElementById("milestone-description").value.trim() || null,
+  };
+  const response = editingMilestoneId
+    ? await apiFetch(`/admin/ecosystem/milestones/${editingMilestoneId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+    : await apiFetch("/admin/ecosystem/milestones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    errorEl.textContent = err.detail || "Bir hata oluştu.";
+    return;
+  }
+  resetMilestoneForm();
+  loadMilestones();
+  loadOverview();
+});
+
+// --- preview ---
+function renderEcosystemPreview(containerEl, data) {
+  const progress = data.next_milestone ? data.progress_to_next : 100;
+  containerEl.innerHTML = `
+    <div style="margin-top: 14px;">
+      <div style="font-weight:700; font-size:15px;">${escapeHtml(data.stage_name)}</div>
+      <div style="color: var(--muted); font-size: 12px; margin-top: 2px;">${escapeHtml(data.stage_description || "")}</div>
+      <div style="font-size: 12px; color: var(--muted); margin-top: 8px;">Büyüme seviyesi: ${data.growth_level}</div>
+      <div class="preview-progress-track"><div class="preview-progress-fill" style="width:${progress}%"></div></div>
+      <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+        ${data.next_milestone ? `${escapeHtml(data.next_milestone.name)} için %${progress} yolda` : "En üst aşama"}
+      </div>
+    </div>
+  `;
+}
+
+document.getElementById("preview-btn").addEventListener("click", async () => {
+  const streak = parseInt(document.getElementById("preview-streak-input").value, 10) || 0;
+  const response = await apiFetch(`/admin/ecosystem/preview?streak=${streak}`);
+  if (!response.ok) return;
+  const data = await response.json();
+  renderEcosystemPreview(document.getElementById("preview-result"), data);
+});
+
+// --- users ---
+async function loadUsers() {
+  const response = await apiFetch("/admin/users");
+  if (!response.ok) return;
+  const users = await response.json();
+  const list = document.getElementById("users-list");
+  list.innerHTML = "";
+  for (const u of users) {
+    const row = document.createElement("div");
+    row.className = "list-row";
+    row.style.flexDirection = "column";
+    row.style.alignItems = "stretch";
+    row.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <div>
+          <div class="list-row-title">${escapeHtml(u.email)} ${u.is_admin ? '<span class="badge">admin</span>' : ""}</div>
+          <div class="list-row-meta">${u.active_habits} aktif habit · en uzun seri ${u.best_current_streak} gün · ${escapeHtml(u.stage_name)} (seviye ${u.growth_level})</div>
+        </div>
+        ${u.has_override ? '<span class="badge badge-muted">simüle ediliyor</span>' : ""}
+      </div>
+      <div class="override-controls">
+        <input type="number" min="0" placeholder="seri (gün)" class="override-input">
+        <button type="button" class="btn-ghost btn-small apply-btn">Uygula</button>
+        <button type="button" class="btn-ghost btn-small" data-bump="7">+7</button>
+        <button type="button" class="btn-ghost btn-small" data-bump="-7">-7</button>
+        <button type="button" class="btn-danger btn-small clear-btn" ${u.has_override ? "" : "disabled"}>Sıfırla</button>
+      </div>
+    `;
+    const input = row.querySelector(".override-input");
+    input.value = u.best_current_streak;
+
+    async function applyOverride(streak) {
+      const value = Math.max(0, streak);
+      await apiFetch(`/admin/users/${u.user_id}/ecosystem/override`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ simulated_streak: value }),
+      });
+      loadUsers();
+      loadOverview();
+    }
+
+    row.querySelector(".apply-btn").addEventListener("click", () => {
+      applyOverride(parseInt(input.value, 10) || 0);
+    });
+    row.querySelectorAll("[data-bump]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        applyOverride((parseInt(input.value, 10) || 0) + parseInt(btn.dataset.bump, 10));
+      });
+    });
+    row.querySelector(".clear-btn").addEventListener("click", async () => {
+      await apiFetch(`/admin/users/${u.user_id}/ecosystem/override`, { method: "DELETE" });
+      loadUsers();
+      loadOverview();
+    });
+
+    list.appendChild(row);
+  }
+}
+
+// --- boot: verify admin access, then load everything ---
+async function boot() {
+  const { access } = getTokens();
+  if (!access) {
+    window.location.href = "/app/";
+    return;
+  }
+  const response = await apiFetch("/me");
+  if (!response.ok) {
+    window.location.href = "/app/";
+    return;
+  }
+  const me = await response.json();
+  if (!me.is_admin) {
+    document.getElementById("unauthorized-view").style.display = "block";
+    return;
+  }
+  document.getElementById("admin-view").style.display = "block";
+  loadOverview();
+  loadMilestones();
+  loadUsers();
+}
+boot();
+</script>
+</body>
+</html>

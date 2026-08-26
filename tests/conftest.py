@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app import models
 from app.database import Base, get_db
 from app.main import app
 from app.rate_limit import limiter
@@ -67,3 +68,26 @@ def make_authed_client():
 def client(make_authed_client):
     """Default authenticated client used by most tests."""
     return make_authed_client()
+
+
+@pytest.fixture
+def make_admin_client(make_authed_client):
+    """Factory for a logged-in TestClient whose user has is_admin=True.
+
+    There is no user-facing way to become an admin, so tests promote the user
+    directly in the database - the same one-time-DB-manipulation path used
+    to grant the first real admin in production.
+    """
+
+    def _make(email="admin@example.com", password="testpassword123"):
+        test_client = make_authed_client(email=email, password=password)
+        db = TestingSessionLocal()
+        try:
+            user = db.query(models.User).filter(models.User.email == email).first()
+            user.is_admin = True
+            db.commit()
+        finally:
+            db.close()
+        return test_client
+
+    return _make

@@ -654,7 +654,10 @@
     <div class="app-main">
     <div class="topbar">
       <h1>Habit'lerim</h1>
-      <button class="btn-ghost" id="logout-btn">Çıkış yap</button>
+      <div class="row" style="flex:none; gap:12px; align-items:center;">
+        <a class="btn-ghost" id="admin-panel-link" href="/app/admin.html" style="display:none;">🛡️ Yönetici</a>
+        <button class="btn-ghost" id="logout-btn">Çıkış yap</button>
+      </div>
     </div>
 
     <div class="card">
@@ -1974,6 +1977,8 @@ function escapeHtml(str) {
   }
   const response = await fetch(API + "/me", { headers: { Authorization: `Bearer ${access}` } });
   if (response.ok) {
+    const me = await response.json();
+    document.getElementById("admin-panel-link").style.display = me.is_admin ? "inline-block" : "none";
     showApp();
   } else {
     const refreshed = await tryRefresh();

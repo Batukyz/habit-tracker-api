@@ -12,6 +12,7 @@ from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 
 from . import models, schemas
+from .admin_auth import require_admin
 from .ecosystem import DEFAULT_MILESTONES, EcosystemInput, Milestone, compute_ecosystem_state
 from .auth import (
     create_access_token,
@@ -467,14 +468,10 @@ def get_overview(
     )
 
 
-@app.get("/ecosystem", response_model=schemas.EcosystemOut)
-def get_ecosystem(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
+def _compute_user_ecosystem_input(db: Session, user_id: int) -> EcosystemInput:
     habits = (
         db.query(models.Habit)
-        .filter(models.Habit.owner_id == current_user.id, models.Habit.is_archived.is_(False))
+        .filter(models.Habit.owner_id == user_id, models.Habit.is_archived.is_(False))
         .all()
     )
 
@@ -496,25 +493,26 @@ def get_ecosystem(
 
     avg_completion_rate = round(sum(completion_rates) / len(completion_rates), 1) if completion_rates else 0.0
 
+    return EcosystemInput(
+        total_habits=len(habits),
+        total_logs=total_logs,
+        best_current_streak=best_current,
+        best_longest_streak=best_longest,
+        avg_completion_rate=avg_completion_rate,
+    )
+
+
+def _get_milestones(db: Session) -> list[Milestone]:
     milestone_rows = (
         db.query(models.EcosystemMilestone).order_by(models.EcosystemMilestone.threshold).all()
     )
-    milestones = [
+    return [
         Milestone(threshold=row.threshold, stage_key=row.stage_key, name=row.name, description=row.description)
         for row in milestone_rows
     ] or DEFAULT_MILESTONES
 
-    state = compute_ecosystem_state(
-        EcosystemInput(
-            total_habits=len(habits),
-            total_logs=total_logs,
-            best_current_streak=best_current,
-            best_longest_streak=best_longest,
-            avg_completion_rate=avg_completion_rate,
-        ),
-        milestones,
-    )
 
+def _ecosystem_state_to_schema(state, is_simulated: bool = False) -> schemas.EcosystemOut:
     return schemas.EcosystemOut(
         growth_level=state.growth_level,
         stage_key=state.stage_key,
@@ -536,4 +534,263 @@ def get_ecosystem(
         avg_completion_rate=state.avg_completion_rate,
         total_habits=state.total_habits,
         total_logs=state.total_logs,
+        is_simulated=is_simulated,
     )
+
+
+@app.get("/ecosystem", response_model=schemas.EcosystemOut)
+def get_ecosystem(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    inputs = _compute_user_ecosystem_input(db, current_user.id)
+
+    override = (
+        db.query(models.EcosystemOverride)
+        .filter(models.EcosystemOverride.user_id == current_user.id)
+        .first()
+    )
+    is_simulated = override is not None
+    if override is not None:
+        inputs = EcosystemInput(
+            total_habits=inputs.total_habits,
+            total_logs=inputs.total_logs,
+            best_current_streak=override.simulated_streak,
+            best_longest_streak=max(inputs.best_longest_streak, override.simulated_streak),
+            avg_completion_rate=inputs.avg_completion_rate,
+        )
+
+    state = compute_ecosystem_state(inputs, _get_milestones(db))
+    return _ecosystem_state_to_schema(state, is_simulated=is_simulated)
+
+
+# --- Admin: ecosystem overview, milestone/growth-rule management, preview
+# simulator, and per-user manual streak-override tools. All gated on
+# User.is_admin via require_admin; there is no user-facing way to become an
+# admin - the flag is set directly in the database.
+
+
+@app.get("/admin/ecosystem/overview", response_model=schemas.AdminOverviewOut)
+def admin_ecosystem_overview(
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    milestones = _get_milestones(db)
+    users = db.query(models.User).all()
+
+    users_with_active_habits = 0
+    growth_levels: list[int] = []
+    streaks: list[int] = []
+    for user in users:
+        inputs = _compute_user_ecosystem_input(db, user.id)
+        if inputs.total_habits == 0:
+            continue
+        users_with_active_habits += 1
+        state = compute_ecosystem_state(inputs, milestones)
+        growth_levels.append(state.growth_level)
+        streaks.append(state.best_current_streak)
+
+    return schemas.AdminOverviewOut(
+        total_users=len(users),
+        users_with_active_habits=users_with_active_habits,
+        average_growth_level=round(sum(growth_levels) / len(growth_levels), 2) if growth_levels else 0.0,
+        average_best_current_streak=round(sum(streaks) / len(streaks), 2) if streaks else 0.0,
+        total_growth_points=sum(growth_levels),
+        milestone_count=len(milestones),
+    )
+
+
+@app.get("/admin/ecosystem/milestones", response_model=list[schemas.AdminMilestoneOut])
+def admin_list_milestones(
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    return (
+        db.query(models.EcosystemMilestone).order_by(models.EcosystemMilestone.threshold).all()
+    )
+
+
+@app.post("/admin/ecosystem/milestones", response_model=schemas.AdminMilestoneOut, status_code=201)
+def admin_create_milestone(
+    milestone: schemas.AdminMilestoneCreate,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    existing = (
+        db.query(models.EcosystemMilestone)
+        .filter(models.EcosystemMilestone.threshold == milestone.threshold)
+        .first()
+    )
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="A milestone with this threshold already exists")
+    row = models.EcosystemMilestone(**milestone.model_dump())
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def _get_admin_milestone(milestone_id: int, db: Session) -> models.EcosystemMilestone:
+    row = (
+        db.query(models.EcosystemMilestone)
+        .filter(models.EcosystemMilestone.id == milestone_id)
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Milestone not found")
+    return row
+
+
+@app.put("/admin/ecosystem/milestones/{milestone_id}", response_model=schemas.AdminMilestoneOut)
+def admin_update_milestone(
+    milestone_id: int,
+    update: schemas.AdminMilestoneUpdate,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    row = _get_admin_milestone(milestone_id, db)
+    changes = update.model_dump(exclude_unset=True)
+    if "threshold" in changes and changes["threshold"] != row.threshold:
+        clash = (
+            db.query(models.EcosystemMilestone)
+            .filter(
+                models.EcosystemMilestone.threshold == changes["threshold"],
+                models.EcosystemMilestone.id != milestone_id,
+            )
+            .first()
+        )
+        if clash is not None:
+            raise HTTPException(status_code=409, detail="A milestone with this threshold already exists")
+    for field, value in changes.items():
+        setattr(row, field, value)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@app.delete("/admin/ecosystem/milestones/{milestone_id}", status_code=204)
+def admin_delete_milestone(
+    milestone_id: int,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    row = _get_admin_milestone(milestone_id, db)
+    db.delete(row)
+    db.commit()
+
+
+@app.get("/admin/ecosystem/preview", response_model=schemas.EcosystemOut)
+def admin_preview_ecosystem(
+    streak: int = Query(ge=0),
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    inputs = EcosystemInput(
+        total_habits=0,
+        total_logs=0,
+        best_current_streak=streak,
+        best_longest_streak=streak,
+        avg_completion_rate=0.0,
+    )
+    state = compute_ecosystem_state(inputs, _get_milestones(db))
+    return _ecosystem_state_to_schema(state, is_simulated=True)
+
+
+@app.get("/admin/users", response_model=list[schemas.AdminUserSummaryOut])
+def admin_list_users(
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    milestones = _get_milestones(db)
+    overridden_ids = {row.user_id for row in db.query(models.EcosystemOverride.user_id).all()}
+    summaries = []
+    for user in db.query(models.User).order_by(models.User.id).all():
+        inputs = _compute_user_ecosystem_input(db, user.id)
+        state = compute_ecosystem_state(inputs, milestones)
+        summaries.append(
+            schemas.AdminUserSummaryOut(
+                user_id=user.id,
+                email=user.email,
+                is_admin=user.is_admin,
+                active_habits=inputs.total_habits,
+                best_current_streak=state.best_current_streak,
+                growth_level=state.growth_level,
+                stage_name=state.stage_name,
+                has_override=user.id in overridden_ids,
+            )
+        )
+    return summaries
+
+
+def _get_target_user(user_id: int, db: Session) -> models.User:
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+@app.get("/admin/users/{user_id}/ecosystem", response_model=schemas.EcosystemOut)
+def admin_get_user_ecosystem(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    _get_target_user(user_id, db)
+    inputs = _compute_user_ecosystem_input(db, user_id)
+    override = db.query(models.EcosystemOverride).filter(models.EcosystemOverride.user_id == user_id).first()
+    is_simulated = override is not None
+    if override is not None:
+        inputs = EcosystemInput(
+            total_habits=inputs.total_habits,
+            total_logs=inputs.total_logs,
+            best_current_streak=override.simulated_streak,
+            best_longest_streak=max(inputs.best_longest_streak, override.simulated_streak),
+            avg_completion_rate=inputs.avg_completion_rate,
+        )
+    state = compute_ecosystem_state(inputs, _get_milestones(db))
+    return _ecosystem_state_to_schema(state, is_simulated=is_simulated)
+
+
+@app.put("/admin/users/{user_id}/ecosystem/override", response_model=schemas.EcosystemOut)
+def admin_set_user_ecosystem_override(
+    user_id: int,
+    override_in: schemas.EcosystemOverrideIn,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    _get_target_user(user_id, db)
+    row = db.query(models.EcosystemOverride).filter(models.EcosystemOverride.user_id == user_id).first()
+    if row is None:
+        row = models.EcosystemOverride(user_id=user_id, simulated_streak=override_in.simulated_streak)
+        db.add(row)
+    else:
+        row.simulated_streak = override_in.simulated_streak
+    db.commit()
+
+    inputs = _compute_user_ecosystem_input(db, user_id)
+    inputs = EcosystemInput(
+        total_habits=inputs.total_habits,
+        total_logs=inputs.total_logs,
+        best_current_streak=override_in.simulated_streak,
+        best_longest_streak=max(inputs.best_longest_streak, override_in.simulated_streak),
+        avg_completion_rate=inputs.avg_completion_rate,
+    )
+    state = compute_ecosystem_state(inputs, _get_milestones(db))
+    return _ecosystem_state_to_schema(state, is_simulated=True)
+
+
+@app.delete("/admin/users/{user_id}/ecosystem/override", response_model=schemas.EcosystemOut)
+def admin_clear_user_ecosystem_override(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    _get_target_user(user_id, db)
+    row = db.query(models.EcosystemOverride).filter(models.EcosystemOverride.user_id == user_id).first()
+    if row is not None:
+        db.delete(row)
+        db.commit()
+
+    inputs = _compute_user_ecosystem_input(db, user_id)
+    state = compute_ecosystem_state(inputs, _get_milestones(db))
+    return _ecosystem_state_to_schema(state, is_simulated=False)

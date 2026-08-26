@@ -98,3 +98,24 @@ class EcosystemMilestone(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class EcosystemOverride(Base):
+    """An admin-set testing override for one user's ecosystem.
+
+    When present, its simulated_streak is used in place of the user's real best
+    current streak when computing their ecosystem state - everything downstream
+    (stage, growth level, progress) is still derived by the same pure
+    compute_ecosystem_state() function, so the override only substitutes one
+    input rather than introducing a second, parallel notion of ecosystem state.
+    Deleting the row (the admin "recalculate"/"reset" action) reverts the user
+    to their real, fully-deterministic streak-derived state.
+    """
+
+    __tablename__ = "ecosystem_overrides"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    simulated_streak = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

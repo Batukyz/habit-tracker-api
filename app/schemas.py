@@ -14,6 +14,7 @@ class UserOut(BaseModel):
 
     id: int
     email: str
+    is_admin: bool
     created_at: datetime
 
 
@@ -160,3 +161,52 @@ class EcosystemOut(BaseModel):
     avg_completion_rate: float
     total_habits: int
     total_logs: int
+    is_simulated: bool = False
+
+
+class AdminMilestoneCreate(BaseModel):
+    threshold: int = Field(ge=0)
+    stage_key: str
+    name: str
+    description: Optional[str] = None
+
+
+class AdminMilestoneUpdate(BaseModel):
+    threshold: Optional[int] = Field(default=None, ge=0)
+    stage_key: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class AdminMilestoneOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    threshold: int
+    stage_key: str
+    name: str
+    description: Optional[str] = None
+
+
+class AdminOverviewOut(BaseModel):
+    total_users: int
+    users_with_active_habits: int
+    average_growth_level: float
+    average_best_current_streak: float
+    total_growth_points: int
+    milestone_count: int
+
+
+class AdminUserSummaryOut(BaseModel):
+    user_id: int
+    email: str
+    is_admin: bool
+    active_habits: int
+    best_current_streak: int
+    growth_level: int
+    stage_name: str
+    has_override: bool
+
+
+class EcosystemOverrideIn(BaseModel):
+    simulated_streak: int = Field(ge=0)
