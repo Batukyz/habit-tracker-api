@@ -13,34 +13,39 @@
 </script>
 <style>
   :root {
-    --bg: #e6edf3;
-    --card: #f5f9fb;
-    --input-bg: #dde7ee;
-    --border: #cddae3;
-    --text: #2c3844;
-    --muted: #78899a;
-    --accent: #3f6e90;
-    --accent-hover: #345d7a;
+    --bg: #eef0f7;
+    --card: #ffffff;
+    --input-bg: #f1f2f8;
+    --border: #e1e3ed;
+    --text: #23252b;
+    --muted: #7b7e8c;
+    --accent: #6c5ce7;
+    --accent-hover: #5a4bd1;
     --on-accent: #ffffff;
-    --danger: #ad5147;
-    --danger-hover: #96453c;
-    --success: #7bab9f;
-    --on-success: #1f3d36;
+    --secondary: #e8114a;
+    --secondary-hover: #c90f3f;
+    --danger: #e8114a;
+    --danger-hover: #c90f3f;
+    --success: #4ade80;
+    --on-success: #0f3d22;
+    --gradient: linear-gradient(135deg, var(--accent), var(--secondary));
   }
   [data-theme="dark"] {
-    --bg: #1b1e23;
-    --card: #242830;
-    --input-bg: #1f232a;
-    --border: #333944;
-    --text: #e7e5e0;
-    --muted: #9ca0a8;
-    --accent: #7ea6d6;
-    --accent-hover: #91b4de;
+    --bg: #16171d;
+    --card: #21222c;
+    --input-bg: #1c1d26;
+    --border: #33343f;
+    --text: #ededf2;
+    --muted: #9294a3;
+    --accent: #8c7ff5;
+    --accent-hover: #a296f8;
     --on-accent: #15181c;
-    --danger: #e2998a;
-    --danger-hover: #eaac9f;
-    --success: #9bc9a0;
-    --on-success: #16281a;
+    --secondary: #ff6b85;
+    --secondary-hover: #ff8299;
+    --danger: #ff6b85;
+    --danger-hover: #ff8299;
+    --success: #34d399;
+    --on-success: #0f3d22;
   }
   * { box-sizing: border-box; }
   body {
@@ -53,6 +58,12 @@
   }
   .wrap { max-width: 480px; margin: 0 auto; padding: 32px 20px 80px; }
   h1 { font-size: 22px; font-weight: 700; margin: 0 0 24px; letter-spacing: -0.01em; }
+  .brand-title {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -108,15 +119,15 @@
     padding: 10px 16px;
     font-size: 14px;
     font-weight: 600;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, filter 0.15s ease;
   }
-  .btn-primary { background: var(--accent); color: var(--on-accent); width: 100%; }
-  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary { background: var(--gradient); color: var(--on-accent); width: 100%; }
+  .btn-primary:hover { filter: brightness(1.08); }
   .btn-ghost { background: transparent; color: var(--muted); font-weight: 400; font-size: 13px; }
   .btn-ghost:hover { color: var(--text); }
   .btn-small { padding: 6px 10px; font-size: 13px; }
   .btn-check { background: var(--success); color: var(--on-success); }
-  .btn-check:hover { background: var(--accent-hover); color: var(--on-accent); }
+  .btn-check:hover { filter: brightness(1.05); }
   .btn-archive { background: transparent; border: 1px solid var(--border); color: var(--muted); }
   .btn-archive:hover { color: var(--danger-hover); border-color: var(--danger); }
   .row { display: flex; gap: 8px; }
@@ -133,7 +144,7 @@
   .habit:last-child { border-bottom: none; }
   .habit-title { font-size: 15px; font-weight: 600; }
   .habit-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .streak { color: var(--accent); font-weight: 700; }
+  .streak { color: var(--secondary); font-weight: 700; }
   .actions { display: flex; gap: 6px; }
   .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
   .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 24px 0; }
@@ -272,7 +283,7 @@
     border-radius: 999px;
     transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
-  .category-chip.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .category-chip.active { background: var(--gradient); border-color: transparent; color: var(--on-accent); }
   .category-badge {
     display: inline-block;
     font-size: 11px;
@@ -353,7 +364,7 @@
 <div class="wrap">
 
   <div id="login-view">
-    <h1>Habit Tracker</h1>
+    <h1 class="brand-title">Habit Tracker</h1>
     <div class="card">
       <form id="login-form">
         <label>E-posta</label>

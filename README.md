@@ -32,10 +32,13 @@ ekranı ve habit paneli sunan hafif bir web arayüzü de var:
 http://127.0.0.1:8000/app/
 ```
 
-Sağ üstteki 🌙/☀️ butonuyla **soft (açık, yumuşak mavi-gri tonlu) mod** ve
-**dark mod** arasında geçiş yapabilirsin — tercihin tarayıcında hatırlanır.
-İkisi de yumuşak mavi bir vurgu rengi, yuvarlak köşeler ve nazik geçiş
-animasyonlarıyla, sert kontrastlardan kaçınacak şekilde tasarlandı.
+Sağ üstteki 🌙/☀️ butonuyla **açık mod** ve **dark mod** arasında geçiş
+yapabilirsin — tercihin tarayıcında hatırlanır. Modern, canlı bir iki renkli
+(duotone) marka paleti kullanılıyor: canlı indigo (`#6C5CE7`) + canlı mercan
+(`#E8114A`), ana butonlarda ve seçili öğelerde bir gradyan olarak birleşiyor;
+streak (🔥) rakamları mercan rengiyle öne çıkıyor. Yuvarlak köşeler ve nazik
+geçiş animasyonlarıyla tasarlandı; tüm renk çiftleri WCAG kontrastına göre
+doğrulandı.
 
 Kayıt ol / giriş yap → habit ekle → "✓ Bugün" butonuyla check-in yap → güncel
 streak'i gör → "Arşivle" ile kaldır. Yeni habit eklerken 🙂 butonuyla ~90
