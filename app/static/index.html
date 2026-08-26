@@ -147,6 +147,9 @@
   .section-title { font-weight: 700; font-size: 14px; margin-bottom: 12px; }
   #overdue-events-card { border-color: var(--danger); }
   #overdue-events-card .section-title { color: var(--danger-hover); }
+  .overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+  .overview-value { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .overview-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
   .event-row {
     display: flex;
     align-items: center;
@@ -381,6 +384,23 @@
     <div class="topbar">
       <h1>Habit'lerim</h1>
       <button class="btn-ghost" id="logout-btn">Çıkış yap</button>
+    </div>
+
+    <div class="card">
+      <div class="overview-grid">
+        <div class="overview-stat">
+          <div class="overview-value" id="overview-streak">–</div>
+          <div class="overview-label">🔥 En uzun seri</div>
+        </div>
+        <div class="overview-stat">
+          <div class="overview-value" id="overview-checkins">–</div>
+          <div class="overview-label">✅ Bugün tamamlanan</div>
+        </div>
+        <div class="overview-stat">
+          <div class="overview-value" id="overview-overdue">–</div>
+          <div class="overview-label">⏰ Geciken plan</div>
+        </div>
+      </div>
     </div>
 
     <div class="card" id="overdue-events-card" style="display:none">
@@ -704,6 +724,16 @@ function showApp() {
   loadOverdueEvents();
   loadTodayEvents();
   loadUpcomingEvents();
+  loadOverview();
+}
+
+async function loadOverview() {
+  const response = await apiFetch("/overview");
+  const data = await response.json();
+  document.getElementById("overview-streak").textContent = `${data.best_current_streak} gün`;
+  document.getElementById("overview-checkins").textContent =
+    `${data.checked_in_today}/${data.active_habits}`;
+  document.getElementById("overview-overdue").textContent = data.overdue_events;
 }
 
 document.getElementById("show-register").addEventListener("click", () => {
@@ -962,6 +992,7 @@ async function loadHabits() {
     row.querySelector(".btn-archive").addEventListener("click", async () => {
       await apiFetch(`/habits/${habit.id}`, { method: "DELETE" });
       loadHabits();
+      loadOverview();
       if (document.getElementById("archived-card").style.display !== "none") loadArchivedHabits();
     });
     list.appendChild(row);
@@ -993,6 +1024,7 @@ function refreshAllEventLists() {
   loadOverdueEvents();
   loadTodayEvents();
   loadUpcomingEvents();
+  loadOverview();
 }
 
 function renderEventRow(event, { showDate }) {
@@ -1129,6 +1161,7 @@ async function loadArchivedHabits() {
       });
       loadArchivedHabits();
       loadHabits();
+      loadOverview();
     });
     row.querySelector(".btn-archive").addEventListener("click", async () => {
       if (!confirm(`"${habit.title}" kalıcı olarak silinsin mi? Bu işlem geri alınamaz.`)) return;
@@ -1159,6 +1192,7 @@ async function checkInHabit(habit) {
   } else {
     loadHabits();
   }
+  loadOverview();
 }
 
 const amountModalOverlay = document.getElementById("amount-modal-overlay");

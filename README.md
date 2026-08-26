@@ -234,15 +234,18 @@ için genel bir üst sınır (dakikada 200 istek) var.
 | GET | `/events/{event_id}` | Tek bir planı getir | Evet |
 | PUT | `/events/{event_id}` | Planı güncelle (örn. `is_done: true` ile tamamlandı işaretle) | Evet |
 | DELETE | `/events/{event_id}` | Planı sil | Evet |
+| GET | `/overview` | Genel özet: aktif habit sayısı, bugün tamamlanan, en uzun güncel seri, bugünkü/geciken planlar | Evet |
 
 `Habit`, tekrar eden bir alışkanlık; `Event` ise "24 Ağustos'ta toplantım var"
 gibi **tek seferlik, belirli bir tarihe bağlı bir plan/görev**. Web arayüzünde
-"Habit'lerim" ekranının üstünde üç bölüm var: **"⏰ Geciken planlar"** (tarihi
-geçmiş ama tamamlandı işaretlenmemiş planlar — sadece böyle bir plan varsa
-görünür, hiçbiri sessizce kaybolmaz), **"📅 Bugün yapmam gerekenler"** (bugüne
-ait planlar, işaretleyerek tamamlandı yapabilirsin) ve **"🗓️ Yaklaşan
-planlar"** (bugünden sonraki tüm planlar, tarihleriyle birlikte, buradan yeni
-plan da ekleyebilirsin).
+"Habit'lerim" ekranının en üstünde üç sayılık bir **özet paneli** var (en uzun
+güncel seri, bugün kaç habit tamamlandı, kaç geciken plan var) — `GET /overview`
+ile besleniyor, her check-in/arşivleme/plan işleminde otomatik güncellenir.
+Altında üç bölüm var: **"⏰ Geciken planlar"** (tarihi geçmiş ama tamamlandı
+işaretlenmemiş planlar — sadece böyle bir plan varsa görünür, hiçbiri sessizce
+kaybolmaz), **"📅 Bugün yapmam gerekenler"** (bugüne ait planlar, işaretleyerek
+tamamlandı yapabilirsin) ve **"🗓️ Yaklaşan planlar"** (bugünden sonraki tüm
+planlar, tarihleriyle birlikte, buradan yeni plan da ekleyebilirsin).
 
 `Habit`'in `tracking_unit` alanı (örn. `"litre"`, `"sayfa"`, `"km"`) ayarlıysa, o
 habit sadece işaretlenen bir şey değil, **miktar takip edilen** bir habit'tir —

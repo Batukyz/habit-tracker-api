@@ -130,3 +130,12 @@ class EventOut(BaseModel):
     event_date: date
     is_done: bool
     created_at: datetime
+
+
+class OverviewOut(BaseModel):
+    active_habits: int
+    checked_in_today: int
+    best_current_streak: int
+    events_today_total: int
+    events_today_done: int
+    overdue_events: int

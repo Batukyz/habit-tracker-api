@@ -416,3 +416,51 @@ def delete_event(
     event = _get_owned_event(event_id, current_user.id, db)
     db.delete(event)
     db.commit()
+
+
+@app.get("/overview", response_model=schemas.OverviewOut)
+def get_overview(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    today = date.today()
+
+    habits = (
+        db.query(models.Habit)
+        .filter(models.Habit.owner_id == current_user.id, models.Habit.is_archived.is_(False))
+        .all()
+    )
+    checked_in_today = 0
+    best_current_streak = 0
+    for habit in habits:
+        dates = [
+            log.completed_on
+            for log in db.query(models.HabitLog).filter(models.HabitLog.habit_id == habit.id).all()
+        ]
+        if today in dates:
+            checked_in_today += 1
+        best_current_streak = max(best_current_streak, calculate_streak(dates, habit.frequency))
+
+    today_events = (
+        db.query(models.Event)
+        .filter(models.Event.owner_id == current_user.id, models.Event.event_date == today)
+        .all()
+    )
+    overdue_events = (
+        db.query(models.Event)
+        .filter(
+            models.Event.owner_id == current_user.id,
+            models.Event.event_date < today,
+            models.Event.is_done.is_(False),
+        )
+        .count()
+    )
+
+    return schemas.OverviewOut(
+        active_habits=len(habits),
+        checked_in_today=checked_in_today,
+        best_current_streak=best_current_streak,
+        events_today_total=len(today_events),
+        events_today_done=sum(1 for e in today_events if e.is_done),
+        overdue_events=overdue_events,
+    )
