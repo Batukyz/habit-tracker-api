@@ -145,6 +145,8 @@
   .stat-label { color: var(--muted); font-size: 13px; }
   .stat-value { font-weight: 700; font-size: 13px; }
   .section-title { font-weight: 700; font-size: 14px; margin-bottom: 12px; }
+  #overdue-events-card { border-color: var(--danger); }
+  #overdue-events-card .section-title { color: var(--danger-hover); }
   .event-row {
     display: flex;
     align-items: center;
@@ -379,6 +381,11 @@
     <div class="topbar">
       <h1>Habit'lerim</h1>
       <button class="btn-ghost" id="logout-btn">Çıkış yap</button>
+    </div>
+
+    <div class="card" id="overdue-events-card" style="display:none">
+      <div class="section-title">⏰ Geciken planlar</div>
+      <div id="overdue-events-list"></div>
     </div>
 
     <div class="card">
@@ -694,6 +701,7 @@ function showApp() {
   document.getElementById("detail-view").style.display = "none";
   document.getElementById("app-view").style.display = "block";
   loadHabits();
+  loadOverdueEvents();
   loadTodayEvents();
   loadUpcomingEvents();
 }
@@ -978,9 +986,14 @@ document.getElementById("add-event-form").addEventListener("submit", async (e) =
   });
   titleInput.value = "";
   dateInput.value = "";
+  refreshAllEventLists();
+});
+
+function refreshAllEventLists() {
+  loadOverdueEvents();
   loadTodayEvents();
   loadUpcomingEvents();
-});
+}
 
 function renderEventRow(event, { showDate }) {
   const row = document.createElement("div");
@@ -1002,15 +1015,33 @@ function renderEventRow(event, { showDate }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_done: e.target.checked }),
     });
-    loadTodayEvents();
-    loadUpcomingEvents();
+    refreshAllEventLists();
   });
   row.querySelector(".btn-archive").addEventListener("click", async () => {
     await apiFetch(`/events/${event.id}`, { method: "DELETE" });
-    loadTodayEvents();
-    loadUpcomingEvents();
+    refreshAllEventLists();
   });
   return row;
+}
+
+async function loadOverdueEvents() {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const response = await apiFetch(`/events?date_to=${toIsoDate(yesterday)}&is_done=false`);
+  const events = await response.json();
+  const card = document.getElementById("overdue-events-card");
+  const list = document.getElementById("overdue-events-list");
+  list.innerHTML = "";
+
+  if (events.length === 0) {
+    card.style.display = "none";
+    return;
+  }
+  card.style.display = "block";
+  for (const event of events) {
+    list.appendChild(renderEventRow(event, { showDate: true }));
+  }
 }
 
 async function loadTodayEvents() {

@@ -237,8 +237,10 @@ için genel bir üst sınır (dakikada 200 istek) var.
 
 `Habit`, tekrar eden bir alışkanlık; `Event` ise "24 Ağustos'ta toplantım var"
 gibi **tek seferlik, belirli bir tarihe bağlı bir plan/görev**. Web arayüzünde
-"Habit'lerim" ekranının üstünde iki bölüm var: **"📅 Bugün yapmam gerekenler"**
-(bugüne ait planlar, işaretleyerek tamamlandı yapabilirsin) ve **"🗓️ Yaklaşan
+"Habit'lerim" ekranının üstünde üç bölüm var: **"⏰ Geciken planlar"** (tarihi
+geçmiş ama tamamlandı işaretlenmemiş planlar — sadece böyle bir plan varsa
+görünür, hiçbiri sessizce kaybolmaz), **"📅 Bugün yapmam gerekenler"** (bugüne
+ait planlar, işaretleyerek tamamlandı yapabilirsin) ve **"🗓️ Yaklaşan
 planlar"** (bugünden sonraki tüm planlar, tarihleriyle birlikte, buradan yeni
 plan da ekleyebilirsin).
 
