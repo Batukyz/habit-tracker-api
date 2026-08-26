@@ -139,3 +139,24 @@ class OverviewOut(BaseModel):
     events_today_total: int
     events_today_done: int
     overdue_events: int
+
+
+class EcosystemMilestoneOut(BaseModel):
+    threshold: int
+    stage_key: str
+    name: str
+    description: Optional[str] = None
+
+
+class EcosystemOut(BaseModel):
+    growth_level: int
+    stage_key: str
+    stage_name: str
+    stage_description: Optional[str] = None
+    next_milestone: Optional[EcosystemMilestoneOut] = None
+    progress_to_next: float
+    best_current_streak: int
+    best_longest_streak: int
+    avg_completion_rate: float
+    total_habits: int
+    total_logs: int

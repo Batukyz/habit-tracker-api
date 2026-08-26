@@ -161,17 +161,6 @@
   .overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
   .overview-value { font-size: 22px; font-weight: 700; color: var(--accent); }
   .overview-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
-  .growth-row { display: flex; align-items: center; gap: 16px; }
-  .growth-emoji { font-size: 40px; line-height: 1; flex: none; transition: transform 0.3s ease; }
-  .growth-emoji.pop { animation: growth-pop 0.6s ease; }
-  @keyframes growth-pop {
-    0% { transform: scale(1) rotate(0deg); }
-    40% { transform: scale(1.35) rotate(-4deg); }
-    70% { transform: scale(0.95) rotate(2deg); }
-    100% { transform: scale(1) rotate(0deg); }
-  }
-  .growth-label { font-weight: 700; font-size: 15px; }
-  .growth-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .event-row {
     display: flex;
     align-items: center;
@@ -368,6 +357,109 @@
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
+
+  /* --- Ecosystem: living-world panel, left of the main tracker on wide screens --- */
+  body.app-active .wrap { max-width: 1040px; }
+  .app-layout { display: grid; grid-template-columns: 300px minmax(0, 480px); gap: 24px; align-items: start; justify-content: center; }
+  .app-main { min-width: 0; }
+  .ecosystem-panel {
+    border-radius: 20px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
+    background: var(--eco-sky-bottom, var(--card));
+    position: sticky;
+    top: 16px;
+  }
+  .eco-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .eco-stage-name { font-weight: 700; font-size: 15px; }
+  .eco-days { font-size: 11px; color: var(--muted-on-eco, var(--muted)); }
+  .ecosystem-scene {
+    --eco-sky-top: #bfe3ff;
+    --eco-sky-bottom: #eaf6ff;
+    --eco-ground: #b98a5e;
+    --eco-ground-dark: #8f6a44;
+    --eco-sun-moon: #ffd166;
+    --eco-particle: #ffe8a3;
+    border-radius: 14px;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--eco-sky-top), var(--eco-sky-bottom));
+    transition: background 0.6s ease;
+  }
+  .ecosystem-scene.tod-evening {
+    --eco-sky-top: #f7b98a;
+    --eco-sky-bottom: #fbe0c4;
+    --eco-sun-moon: #ff9a5a;
+    --eco-particle: #ffd7a8;
+  }
+  .ecosystem-scene.tod-night {
+    --eco-sky-top: #1c2340;
+    --eco-sky-bottom: #33406b;
+    --eco-ground: #4a4a63;
+    --eco-ground-dark: #34344a;
+    --eco-sun-moon: #e6e9f5;
+    --eco-particle: #ffe98a;
+  }
+  [data-theme="dark"] .ecosystem-scene {
+    --eco-sky-top: #223055;
+    --eco-sky-bottom: #33456f;
+  }
+  [data-theme="dark"] .ecosystem-scene.tod-night {
+    --eco-sky-top: #10142a;
+    --eco-sky-bottom: #232c4a;
+  }
+  .eco-svg { display: block; width: 100%; height: auto; }
+  .eco-sun-moon { fill: var(--eco-sun-moon); transition: fill 0.6s ease; }
+  .eco-ground { fill: var(--eco-ground); transition: fill 0.6s ease; }
+  .eco-ground-shade { fill: var(--eco-ground-dark); transition: fill 0.6s ease; }
+  .eco-particle { fill: var(--eco-particle); opacity: 0; animation: eco-float 5s ease-in-out infinite; }
+  .eco-particle:nth-child(2) { animation-delay: 0.6s; }
+  .eco-particle:nth-child(3) { animation-delay: 1.4s; }
+  .eco-particle:nth-child(4) { animation-delay: 2.1s; }
+  @keyframes eco-float {
+    0% { opacity: 0; transform: translateY(0); }
+    20% { opacity: 0.85; }
+    100% { opacity: 0; transform: translateY(-22px); }
+  }
+  .eco-sway { transform-box: fill-box; transform-origin: 50% 100%; animation: eco-sway 4.5s ease-in-out infinite; }
+  @keyframes eco-sway {
+    0%, 100% { transform: rotate(-1.5deg); }
+    50% { transform: rotate(1.5deg); }
+  }
+  .eco-creature { transform-box: fill-box; transform-origin: 50% 50%; animation: eco-flutter 3.2s ease-in-out infinite; }
+  @keyframes eco-flutter {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-5px) rotate(4deg); }
+  }
+  .ecosystem-scene.eco-grow-pop { animation: eco-grow-pop 0.7s ease; }
+  @keyframes eco-grow-pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.035); }
+    100% { transform: scale(1); }
+  }
+  .eco-progress-track { height: 6px; border-radius: 999px; background: var(--border); margin-top: 12px; overflow: hidden; }
+  .eco-progress-fill { height: 100%; background: var(--gradient); border-radius: 999px; transition: width 0.5s ease; }
+  .eco-progress-label { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .eco-milestone-toast {
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    padding: 8px;
+    border-radius: 10px;
+    background: var(--gradient);
+    color: var(--on-accent);
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+  }
+  .eco-milestone-toast.show { opacity: 1; transform: translateY(0); }
+  @media (max-width: 859px) {
+    body.app-active .wrap { max-width: 480px; }
+    .app-layout { grid-template-columns: 1fr; }
+    .ecosystem-panel { position: static; order: -1; }
+  }
 </style>
 </head>
 <body>
@@ -403,19 +495,112 @@
   </div>
 
   <div id="app-view">
+   <div class="app-layout">
+    <aside class="ecosystem-panel" id="ecosystem-panel">
+      <div class="eco-header">
+        <div class="eco-stage-name" id="eco-stage-name">Boş Toprak</div>
+        <div class="eco-days" id="eco-days">0 gün</div>
+      </div>
+      <div class="ecosystem-scene" id="ecosystem-scene">
+        <svg class="eco-svg" viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg">
+          <circle class="eco-sun-moon" id="eco-sun-moon" cx="176" cy="46" r="20"></circle>
+          <circle class="eco-particle" cx="52" cy="150" r="2.2"></circle>
+          <circle class="eco-particle" cx="150" cy="120" r="1.8"></circle>
+          <circle class="eco-particle" cx="90" cy="170" r="2"></circle>
+          <circle class="eco-particle" cx="130" cy="190" r="1.6"></circle>
+
+          <g id="eco-tree-canopy-full" style="display:none">
+            <circle cx="110" cy="118" r="34" fill="#3f8f52"></circle>
+            <circle cx="88" cy="132" r="24" fill="#4aa860"></circle>
+            <circle cx="132" cy="132" r="24" fill="#4aa860"></circle>
+          </g>
+          <g id="eco-tree" class="eco-sway" style="display:none">
+            <rect x="105" y="150" width="10" height="60" rx="3" fill="#7a5233"></rect>
+            <circle cx="110" cy="140" r="28" fill="#4aa860"></circle>
+            <circle cx="90" cy="152" r="18" fill="#5cbf74"></circle>
+            <circle cx="130" cy="152" r="18" fill="#5cbf74"></circle>
+          </g>
+          <g id="eco-bush" class="eco-sway" style="display:none">
+            <circle cx="95" cy="185" r="16" fill="#4aa860"></circle>
+            <circle cx="115" cy="180" r="20" fill="#5cbf74"></circle>
+            <circle cx="130" cy="190" r="14" fill="#4aa860"></circle>
+          </g>
+
+          <g id="eco-stem" class="eco-sway" style="display:none">
+            <path d="M110 210 Q104 170 110 130" stroke="#3f8f52" stroke-width="4" fill="none" stroke-linecap="round"></path>
+          </g>
+          <g id="eco-leaves-1" class="eco-sway" style="display:none">
+            <ellipse cx="96" cy="188" rx="12" ry="6" fill="#5cbf74" transform="rotate(-25 96 188)"></ellipse>
+            <ellipse cx="124" cy="184" rx="12" ry="6" fill="#5cbf74" transform="rotate(25 124 184)"></ellipse>
+          </g>
+          <g id="eco-leaves-2" class="eco-sway" style="display:none">
+            <ellipse cx="92" cy="158" rx="13" ry="6" fill="#4aa860" transform="rotate(-20 92 158)"></ellipse>
+            <ellipse cx="128" cy="154" rx="13" ry="6" fill="#4aa860" transform="rotate(20 128 154)"></ellipse>
+          </g>
+          <g id="eco-bud" style="display:none">
+            <circle cx="110" cy="128" r="6" fill="#e88ec4"></circle>
+          </g>
+
+          <g id="eco-flowers-1" style="display:none">
+            <circle cx="80" cy="196" r="5" fill="#f2a6d0"></circle>
+            <circle cx="140" cy="200" r="5" fill="#f7c948"></circle>
+          </g>
+          <g id="eco-flowers-2" style="display:none">
+            <circle cx="70" cy="205" r="5" fill="#f7c948"></circle>
+            <circle cx="150" cy="210" r="5" fill="#e88ec4"></circle>
+            <circle cx="110" cy="120" r="6" fill="#f2a6d0"></circle>
+          </g>
+          <g id="eco-flowers-3" style="display:none">
+            <circle cx="60" cy="200" r="5" fill="#f2a6d0"></circle>
+            <circle cx="160" cy="196" r="5" fill="#f7c948"></circle>
+            <circle cx="75" cy="215" r="4" fill="#9fd8f0"></circle>
+            <circle cx="145" cy="218" r="4" fill="#9fd8f0"></circle>
+          </g>
+
+          <g id="eco-grass" style="display:none">
+            <path d="M50 218 q3 -12 0 -18" stroke="#3f8f52" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
+            <path d="M160 220 q-3 -12 0 -18" stroke="#3f8f52" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
+            <path d="M65 222 q3 -10 0 -16" stroke="#4aa860" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
+          </g>
+          <g id="eco-stones" style="display:none">
+            <ellipse cx="145" cy="222" rx="8" ry="5" fill="#9a978f"></ellipse>
+            <ellipse cx="158" cy="226" rx="5" ry="3.5" fill="#847f75"></ellipse>
+          </g>
+
+          <g id="eco-creature-1" class="eco-creature" style="display:none">
+            <ellipse cx="150" cy="140" rx="6" ry="4" fill="#f2a6d0"></ellipse>
+            <ellipse cx="160" cy="140" rx="6" ry="4" fill="#e88ec4"></ellipse>
+            <circle cx="155" cy="140" r="1.6" fill="#5a3d2b"></circle>
+          </g>
+          <g id="eco-creature-2" class="eco-creature" style="display:none">
+            <ellipse cx="60" cy="150" rx="5" ry="3.4" fill="#9fd8f0"></ellipse>
+            <ellipse cx="68" cy="150" rx="5" ry="3.4" fill="#7cc3e8"></ellipse>
+            <circle cx="64" cy="150" r="1.4" fill="#5a3d2b"></circle>
+          </g>
+
+          <g id="eco-sprout" style="display:none">
+            <ellipse cx="102" cy="212" rx="5" ry="8" fill="#8f6a44" transform="rotate(-15 102 212)"></ellipse>
+            <ellipse cx="110" cy="208" rx="4" ry="10" fill="#5cbf74"></ellipse>
+            <ellipse cx="103" cy="205" rx="7" ry="4" fill="#5cbf74" transform="rotate(-30 103 205)"></ellipse>
+            <ellipse cx="117" cy="205" rx="7" ry="4" fill="#5cbf74" transform="rotate(30 117 205)"></ellipse>
+          </g>
+          <g id="eco-seed" style="display:none">
+            <ellipse cx="110" cy="218" rx="6" ry="8" fill="#8f6a44"></ellipse>
+            <ellipse cx="110" cy="212" rx="2.5" ry="3" fill="#5cbf74"></ellipse>
+          </g>
+
+          <path class="eco-ground" d="M0 226 Q60 214 110 224 T220 222 V260 H0 Z"></path>
+          <path class="eco-ground-shade" d="M0 240 Q60 230 110 238 T220 236 V260 H0 Z"></path>
+        </svg>
+      </div>
+      <div class="eco-progress-track"><div class="eco-progress-fill" id="eco-progress-fill" style="width:0%"></div></div>
+      <div class="eco-progress-label" id="eco-progress-label">Sonraki aşamaya 1 gün</div>
+      <div class="eco-milestone-toast" id="eco-milestone-toast"></div>
+    </aside>
+    <div class="app-main">
     <div class="topbar">
       <h1>Habit'lerim</h1>
       <button class="btn-ghost" id="logout-btn">Çıkış yap</button>
-    </div>
-
-    <div class="card">
-      <div class="growth-row">
-        <div class="growth-emoji" id="growth-emoji">🕳️</div>
-        <div>
-          <div class="growth-label" id="growth-label">Henüz başlamadın</div>
-          <div class="growth-sub" id="growth-sub">En uzun serin: 0 gün</div>
-        </div>
-      </div>
     </div>
 
     <div class="card">
@@ -492,6 +677,8 @@
       <div id="archived-list"></div>
       <div class="empty" id="archived-empty-state" style="display:none">Arşivlenmiş habit yok.</div>
     </div>
+    </div>
+   </div>
   </div>
 
   <div id="detail-view">
@@ -598,28 +785,87 @@ const CATEGORIES = [
   "Finans", "Öğrenme & Gelişim", "Hobi & Yaratıcılık", "Ev & Düzen", "Sosyal & İlişkiler",
 ];
 
-const GROWTH_STAGES = [
-  { minDays: 0, emoji: "🕳️", label: "Henüz başlamadın" },
-  { minDays: 1, emoji: "🌰", label: "Tohum" },
-  { minDays: 3, emoji: "🌱", label: "Filiz" },
-  { minDays: 7, emoji: "🌿", label: "Fidan" },
-  { minDays: 14, emoji: "🌳", label: "Ağaç" },
-  { minDays: 30, emoji: "🌲🌳🌲", label: "Orman" },
+// Maps an ecosystem growth_level (0-based index into the backend milestone
+// table, admin-configurable) to which SVG groups in #ecosystem-scene are
+// visible. Each step's groups stay visible at every higher level too, so the
+// scene accumulates detail as the level rises rather than swapping outright.
+const ECOSYSTEM_VISUAL_STEPS = [
+  { minLevel: 0, groups: [] },
+  { minLevel: 1, groups: ["eco-seed"] },
+  { minLevel: 2, groups: ["eco-sprout"] },
+  { minLevel: 3, groups: ["eco-stem", "eco-leaves-1"] },
+  { minLevel: 4, groups: ["eco-leaves-2", "eco-bud"] },
+  { minLevel: 5, groups: ["eco-flowers-1", "eco-stones"] },
+  { minLevel: 6, groups: ["eco-flowers-2", "eco-bush", "eco-creature-1"] },
+  { minLevel: 7, groups: ["eco-tree", "eco-grass"] },
+  { minLevel: 8, groups: ["eco-tree-canopy-full", "eco-flowers-3", "eco-creature-2"] },
 ];
+const ALL_ECOSYSTEM_GROUP_IDS = ECOSYSTEM_VISUAL_STEPS.flatMap((step) => step.groups);
+// eco-stem/eco-leaves-1 are superseded visually once the plant becomes a bush/tree.
+const ECOSYSTEM_SUPPRESSED_ABOVE = { "eco-stem": 6, "eco-leaves-1": 6, "eco-bud": 5 };
 
-function getGrowthStage(days) {
-  let stage = GROWTH_STAGES[0];
-  let index = 0;
-  for (let i = 0; i < GROWTH_STAGES.length; i++) {
-    if (days >= GROWTH_STAGES[i].minDays) {
-      stage = GROWTH_STAGES[i];
-      index = i;
-    }
+function applyEcosystemGrowthLevel(level) {
+  const active = new Set();
+  for (const step of ECOSYSTEM_VISUAL_STEPS) {
+    if (level >= step.minLevel) step.groups.forEach((id) => active.add(id));
   }
-  return { ...stage, index };
+  for (const [id, ceilingLevel] of Object.entries(ECOSYSTEM_SUPPRESSED_ABOVE)) {
+    if (level > ceilingLevel) active.delete(id);
+  }
+  for (const id of ALL_ECOSYSTEM_GROUP_IDS) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = active.has(id) ? "" : "none";
+  }
 }
 
-let lastGrowthStageIndex = null;
+function applyEcosystemTimeOfDay() {
+  const scene = document.getElementById("ecosystem-scene");
+  const sunMoon = document.getElementById("eco-sun-moon");
+  if (!scene) return;
+  const hour = new Date().getHours();
+  scene.classList.remove("tod-morning", "tod-day", "tod-evening", "tod-night");
+  let cls = "tod-day";
+  let isMoon = false;
+  if (hour < 6 || hour >= 21) { cls = "tod-night"; isMoon = true; }
+  else if (hour < 9) cls = "tod-morning";
+  else if (hour >= 18) cls = "tod-evening";
+  scene.classList.add(cls);
+  if (sunMoon) sunMoon.style.opacity = isMoon ? "0.9" : "1";
+}
+
+let lastEcosystemGrowthLevel = null;
+let lastEcosystemStageKey = null;
+
+async function loadEcosystem() {
+  const response = await apiFetch("/ecosystem");
+  if (!response.ok) return;
+  const data = await response.json();
+
+  document.getElementById("eco-stage-name").textContent = data.stage_name;
+  document.getElementById("eco-days").textContent = `${data.best_current_streak} gün`;
+
+  const progress = data.next_milestone ? data.progress_to_next : 100;
+  document.getElementById("eco-progress-fill").style.width = `${progress}%`;
+  document.getElementById("eco-progress-label").textContent = data.next_milestone
+    ? `${data.next_milestone.name} için %${progress} yolda`
+    : "En üst aşamadasın";
+
+  applyEcosystemTimeOfDay();
+  applyEcosystemGrowthLevel(data.growth_level);
+
+  const scene = document.getElementById("ecosystem-scene");
+  const toast = document.getElementById("eco-milestone-toast");
+  if (lastEcosystemStageKey !== null && data.stage_key !== lastEcosystemStageKey) {
+    scene.classList.remove("eco-grow-pop");
+    void scene.offsetWidth;
+    scene.classList.add("eco-grow-pop");
+    toast.textContent = `🎉 Yeni aşama: ${data.stage_name}`;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 3200);
+  }
+  lastEcosystemGrowthLevel = data.growth_level;
+  lastEcosystemStageKey = data.stage_key;
+}
 
 const CATEGORY_ICONS = {
   "Sağlık": "🩺",
@@ -767,6 +1013,7 @@ async function tryRefresh() {
 
 function showLogin() {
   clearTokens();
+  document.body.classList.remove("app-active");
   document.getElementById("app-view").style.display = "none";
   document.getElementById("login-view").style.display = "block";
 }
@@ -775,11 +1022,13 @@ function showApp() {
   document.getElementById("login-view").style.display = "none";
   document.getElementById("detail-view").style.display = "none";
   document.getElementById("app-view").style.display = "block";
+  document.body.classList.add("app-active");
   loadHabits();
   loadOverdueEvents();
   loadTodayEvents();
   loadUpcomingEvents();
   loadOverview();
+  loadEcosystem();
 }
 
 async function loadOverview() {
@@ -789,22 +1038,6 @@ async function loadOverview() {
   document.getElementById("overview-checkins").textContent =
     `${data.checked_in_today}/${data.active_habits}`;
   document.getElementById("overview-overdue").textContent = data.overdue_events;
-  renderGrowth(data.best_current_streak);
-}
-
-function renderGrowth(streakDays) {
-  const stage = getGrowthStage(streakDays);
-  const emojiEl = document.getElementById("growth-emoji");
-  emojiEl.textContent = stage.emoji;
-  document.getElementById("growth-label").textContent = stage.label;
-  document.getElementById("growth-sub").textContent = `En uzun serin: ${streakDays} gün`;
-
-  if (lastGrowthStageIndex !== null && stage.index > lastGrowthStageIndex) {
-    emojiEl.classList.remove("pop");
-    void emojiEl.offsetWidth; // restart the animation
-    emojiEl.classList.add("pop");
-  }
-  lastGrowthStageIndex = stage.index;
 }
 
 document.getElementById("show-register").addEventListener("click", () => {
@@ -1064,6 +1297,7 @@ async function loadHabits() {
       await apiFetch(`/habits/${habit.id}`, { method: "DELETE" });
       loadHabits();
       loadOverview();
+      loadEcosystem();
       if (document.getElementById("archived-card").style.display !== "none") loadArchivedHabits();
     });
     list.appendChild(row);
@@ -1233,6 +1467,7 @@ async function loadArchivedHabits() {
       loadArchivedHabits();
       loadHabits();
       loadOverview();
+      loadEcosystem();
     });
     row.querySelector(".btn-archive").addEventListener("click", async () => {
       if (!confirm(`"${habit.title}" kalıcı olarak silinsin mi? Bu işlem geri alınamaz.`)) return;
@@ -1264,6 +1499,7 @@ async function checkInHabit(habit) {
     loadHabits();
   }
   loadOverview();
+  loadEcosystem();
 }
 
 const amountModalOverlay = document.getElementById("amount-modal-overlay");
@@ -1412,6 +1648,7 @@ async function openDetail(habitId) {
   currentDetailId = habitId;
   calendarMonth = new Date();
   calendarMonth.setDate(1);
+  document.body.classList.remove("app-active");
   document.getElementById("app-view").style.display = "none";
   document.getElementById("detail-view").style.display = "block";
 

@@ -12,6 +12,7 @@ from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 
 from . import models, schemas
+from .ecosystem import DEFAULT_MILESTONES, EcosystemInput, Milestone, compute_ecosystem_state
 from .auth import (
     create_access_token,
     create_password_reset_token,
@@ -463,4 +464,76 @@ def get_overview(
         events_today_total=len(today_events),
         events_today_done=sum(1 for e in today_events if e.is_done),
         overdue_events=overdue_events,
+    )
+
+
+@app.get("/ecosystem", response_model=schemas.EcosystemOut)
+def get_ecosystem(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    habits = (
+        db.query(models.Habit)
+        .filter(models.Habit.owner_id == current_user.id, models.Habit.is_archived.is_(False))
+        .all()
+    )
+
+    total_logs = 0
+    best_current = 0
+    best_longest = 0
+    completion_rates: list[float] = []
+    for habit in habits:
+        dates = [
+            log.completed_on
+            for log in db.query(models.HabitLog).filter(models.HabitLog.habit_id == habit.id).all()
+        ]
+        total_logs += len(dates)
+        best_current = max(best_current, calculate_streak(dates, habit.frequency))
+        best_longest = max(best_longest, longest_streak(dates, habit.frequency))
+        completion_rates.append(
+            completion_rate(dates, habit.frequency, since=habit.created_at.date(), until=date.today())
+        )
+
+    avg_completion_rate = round(sum(completion_rates) / len(completion_rates), 1) if completion_rates else 0.0
+
+    milestone_rows = (
+        db.query(models.EcosystemMilestone).order_by(models.EcosystemMilestone.threshold).all()
+    )
+    milestones = [
+        Milestone(threshold=row.threshold, stage_key=row.stage_key, name=row.name, description=row.description)
+        for row in milestone_rows
+    ] or DEFAULT_MILESTONES
+
+    state = compute_ecosystem_state(
+        EcosystemInput(
+            total_habits=len(habits),
+            total_logs=total_logs,
+            best_current_streak=best_current,
+            best_longest_streak=best_longest,
+            avg_completion_rate=avg_completion_rate,
+        ),
+        milestones,
+    )
+
+    return schemas.EcosystemOut(
+        growth_level=state.growth_level,
+        stage_key=state.stage_key,
+        stage_name=state.stage_name,
+        stage_description=state.stage_description,
+        next_milestone=(
+            schemas.EcosystemMilestoneOut(
+                threshold=state.next_milestone.threshold,
+                stage_key=state.next_milestone.stage_key,
+                name=state.next_milestone.name,
+                description=state.next_milestone.description,
+            )
+            if state.next_milestone
+            else None
+        ),
+        progress_to_next=state.progress_to_next,
+        best_current_streak=state.best_current_streak,
+        best_longest_streak=state.best_longest_streak,
+        avg_completion_rate=state.avg_completion_rate,
+        total_habits=state.total_habits,
+        total_logs=state.total_logs,
     )

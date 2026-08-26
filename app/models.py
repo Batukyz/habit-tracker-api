@@ -10,6 +10,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
+    is_admin = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     habits = relationship("Habit", back_populates="owner", cascade="all, delete-orphan")
@@ -78,4 +79,22 @@ class Event(Base):
     title = Column(String, nullable=False)
     event_date = Column(Date, nullable=False)
     is_done = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class EcosystemMilestone(Base):
+    """A global, admin-editable growth-stage definition (e.g. 7-day streak -> 'Young Plant').
+
+    Not per-user: a user's ecosystem state is always computed fresh from their
+    habit data against the current milestone table, never stored - this keeps
+    it deterministic (same data + same rules => same result).
+    """
+
+    __tablename__ = "ecosystem_milestones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    threshold = Column(Integer, unique=True, nullable=False)  # streak days required
+    stage_key = Column(String, nullable=False)  # stable id the frontend maps to a visual
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
