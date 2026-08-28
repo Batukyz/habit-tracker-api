@@ -445,8 +445,7 @@
     top: 0;
     left: 0;
     z-index: 45;
-    font-size: 26px;
-    line-height: 1;
+    line-height: 0;
     pointer-events: none;
     user-select: none;
     filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
@@ -471,13 +470,32 @@
     30% { transform: scale(1.25); }
     100% { transform: scale(1); }
   }
+  .neko-leg { transform-box: fill-box; transform-origin: 50% 0%; }
+  .neko-cat.walking .neko-leg-a { animation: neko-step 0.45s ease-in-out infinite; }
+  .neko-cat.walking .neko-leg-b { animation: neko-step 0.45s ease-in-out infinite reverse; }
+  @keyframes neko-step {
+    0%, 100% { transform: rotate(-20deg); }
+    50% { transform: rotate(20deg); }
+  }
 </style>
 </head>
 <body>
 <button type="button" class="theme-toggle-btn" id="theme-toggle-btn" title="Temayı değiştir">🌙</button>
 <button type="button" class="friends-toggle-btn" id="friends-toggle-btn" title="Arkadaşlar">👤➕</button>
 <button type="button" class="neko-toggle-btn" id="neko-toggle-btn" title="Kediyi göster/gizle">🐈</button>
-<div class="neko-cat" id="neko-cat">🐈</div>
+<div class="neko-cat" id="neko-cat">
+  <svg width="30" height="17" viewBox="0 0 60 34" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11 16 Q0 12 4 3" stroke="#b97c46" stroke-width="4" fill="none" stroke-linecap="round"></path>
+    <rect class="neko-leg neko-leg-a" x="13" y="22" width="3" height="9" rx="1.5" fill="#b97c46"></rect>
+    <rect class="neko-leg neko-leg-b" x="19" y="22" width="3" height="9" rx="1.5" fill="#b97c46"></rect>
+    <rect class="neko-leg neko-leg-b" x="35" y="22" width="3" height="9" rx="1.5" fill="#b97c46"></rect>
+    <rect class="neko-leg neko-leg-a" x="41" y="22" width="3" height="9" rx="1.5" fill="#b97c46"></rect>
+    <ellipse cx="25" cy="17" rx="15" ry="8" fill="#d9995c"></ellipse>
+    <polygon points="40,4 43,-4 46,5" fill="#d9995c"></polygon>
+    <polygon points="47,5 50,-3 53,4" fill="#d9995c"></polygon>
+    <circle cx="46" cy="10" r="7" fill="#d9995c"></circle>
+  </svg>
+</div>
 <div class="wrap">
 
   <div id="login-view">
@@ -733,7 +751,7 @@ themeToggleBtn.addEventListener("click", () => {
 (function initNeko() {
   const cat = document.getElementById("neko-cat");
   const toggleBtn = document.getElementById("neko-toggle-btn");
-  const CAT_SIZE = 26;
+  const CAT_SIZE = 30;
   const GROUND_MARGIN = 6;
   const DISTURB_RADIUS = 80;
   const reducesMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -763,6 +781,7 @@ themeToggleBtn.addEventListener("click", () => {
     } while (awayFrom && Math.abs(candidateX - awayFrom.x) < 150);
     target = { x: candidateX, y: groundY() };
     mode = "walking";
+    cat.classList.add("walking");
   }
 
   function updateFacing(dx) {
@@ -793,6 +812,7 @@ themeToggleBtn.addEventListener("click", () => {
         mode = "idle";
         idleUntil = performance.now() + 1500 + Math.random() * 2500;
         cat.classList.remove("startled");
+        cat.classList.remove("walking");
         cat.classList.add("idle");
       } else {
         updateFacing(dx);
