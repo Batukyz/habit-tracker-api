@@ -734,32 +734,34 @@ themeToggleBtn.addEventListener("click", () => {
   const cat = document.getElementById("neko-cat");
   const toggleBtn = document.getElementById("neko-toggle-btn");
   const CAT_SIZE = 26;
+  const GROUND_MARGIN = 6;
   const DISTURB_RADIUS = 80;
   const reducesMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  // Ground-only: the cat walks along the bottom of the page, never flies
+  // around the viewport - only its x position ever changes.
+  function groundY() {
+    return Math.max(0, window.innerHeight - CAT_SIZE - GROUND_MARGIN);
+  }
+  function clampX(x) {
+    const maxX = Math.max(0, window.innerWidth - CAT_SIZE);
+    return Math.min(Math.max(x, 0), maxX);
+  }
+
   let enabled = localStorage.getItem("neko_enabled") !== "off" && !reducesMotion;
-  let pos = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 };
+  let pos = { x: window.innerWidth * 0.5, y: groundY() };
   let target = { ...pos };
   let mouse = { x: -9999, y: -9999 };
   let mode = "idle"; // "idle" | "walking" | "startled"
   let idleUntil = 0;
   let rafId = null;
 
-  function clampToViewport(p) {
-    const maxX = Math.max(0, window.innerWidth - CAT_SIZE);
-    const maxY = Math.max(0, window.innerHeight - CAT_SIZE);
-    return { x: Math.min(Math.max(p.x, 0), maxX), y: Math.min(Math.max(p.y, 0), maxY) };
-  }
-
   function pickNewTarget(awayFrom) {
-    let candidate;
+    let candidateX;
     do {
-      candidate = clampToViewport({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
-      });
-    } while (awayFrom && Math.hypot(candidate.x - awayFrom.x, candidate.y - awayFrom.y) < 150);
-    target = candidate;
+      candidateX = clampX(Math.random() * window.innerWidth);
+    } while (awayFrom && Math.abs(candidateX - awayFrom.x) < 150);
+    target = { x: candidateX, y: groundY() };
     mode = "walking";
   }
 
@@ -832,7 +834,8 @@ themeToggleBtn.addEventListener("click", () => {
     mouse = { x: e.clientX, y: e.clientY };
   });
   window.addEventListener("resize", () => {
-    pos = clampToViewport(pos);
+    pos = { x: clampX(pos.x), y: groundY() };
+    target = { x: clampX(target.x), y: groundY() };
   });
   toggleBtn.addEventListener("click", () => setEnabled(!enabled));
 
