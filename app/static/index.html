@@ -340,7 +340,7 @@
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
   }
   .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
-  .theme-toggle-btn {
+  .theme-toggle-btn, .friends-toggle-btn {
     position: fixed;
     top: 16px;
     right: 16px;
@@ -351,12 +351,14 @@
     width: 40px;
     height: 40px;
     padding: 0;
-    font-size: 17px;
+    font-size: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
+  .friends-toggle-btn { right: 64px; display: none; }
+  body.app-active .friends-toggle-btn { display: flex; }
 
   /* --- Ecosystem: living-world panel, left of the main tracker on wide screens --- */
   body.app-active .wrap { max-width: 1040px; }
@@ -473,6 +475,7 @@
 </head>
 <body>
 <button type="button" class="theme-toggle-btn" id="theme-toggle-btn" title="Temayı değiştir">🌙</button>
+<button type="button" class="friends-toggle-btn" id="friends-toggle-btn" title="Arkadaşlar">👤➕</button>
 <button type="button" class="neko-toggle-btn" id="neko-toggle-btn" title="Kediyi göster/gizle">🐈</button>
 <div class="neko-cat" id="neko-cat">🐈</div>
 <div class="wrap">
@@ -603,17 +606,6 @@
       <div class="empty" id="archived-empty-state" style="display:none">Arşivlenmiş habit yok.</div>
     </div>
 
-    <div class="card">
-      <div class="section-title">🤝 Arkadaşlar</div>
-      <form id="add-friend-form" class="row">
-        <input type="email" id="add-friend-email" placeholder="Arkadaşının e-postası" required>
-        <button type="submit" class="btn-primary" style="width:auto; white-space:nowrap; flex:none;">İstek gönder</button>
-      </form>
-      <div class="error" id="add-friend-error"></div>
-      <div id="friend-requests-list"></div>
-      <div id="friends-list"></div>
-      <div class="empty" id="friends-empty" style="display:none">Henüz arkadaşın yok.</div>
-    </div>
     </div>
    </div>
   </div>
@@ -674,6 +666,23 @@
         <button type="submit" class="btn-primary" style="flex:1;">Kaydet</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="friends-modal-overlay" style="display:none">
+  <div class="modal-card" style="max-width: 380px;">
+    <div class="row" style="justify-content:space-between; align-items:center; margin-bottom: 14px;">
+      <div class="modal-title" style="margin-bottom:0;">👤➕ Arkadaşlar</div>
+      <button type="button" class="btn-ghost" id="friends-modal-close" style="flex:none; font-size:18px; padding:0 4px;">✕</button>
+    </div>
+    <form id="add-friend-form" class="row">
+      <input type="email" id="add-friend-email" placeholder="Arkadaşının e-postası" required>
+      <button type="submit" class="btn-primary" style="width:auto; white-space:nowrap; flex:none;">İstek gönder</button>
+    </form>
+    <div class="error" id="add-friend-error"></div>
+    <div id="friend-requests-list"></div>
+    <div id="friends-list"></div>
+    <div class="empty" id="friends-empty" style="display:none">Henüz arkadaşın yok.</div>
   </div>
 </div>
 
@@ -1397,6 +1406,23 @@ document.getElementById("add-friend-form").addEventListener("submit", async (e) 
   loadFriendRequests();
 });
 
+const friendsModalOverlay = document.getElementById("friends-modal-overlay");
+function openFriendsModal() {
+  friendsModalOverlay.style.display = "flex";
+  loadFriends();
+}
+function closeFriendsModal() {
+  friendsModalOverlay.style.display = "none";
+}
+document.getElementById("friends-toggle-btn").addEventListener("click", openFriendsModal);
+document.getElementById("friends-modal-close").addEventListener("click", closeFriendsModal);
+friendsModalOverlay.addEventListener("click", (e) => {
+  if (e.target === friendsModalOverlay) closeFriendsModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && friendsModalOverlay.style.display !== "none") closeFriendsModal();
+});
+
 const CATEGORY_ICONS = {
   "Sağlık": "🩺",
   "Spor & Fitness": "💪",
@@ -1559,7 +1585,6 @@ function showApp() {
   loadUpcomingEvents();
   loadOverview();
   loadEcosystem();
-  loadFriends();
 }
 
 async function loadOverview() {
