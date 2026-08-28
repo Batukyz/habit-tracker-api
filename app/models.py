@@ -119,3 +119,23 @@ class EcosystemOverride(Base):
     simulated_streak = Column(Integer, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class Friendship(Base):
+    """One row per friend relationship, in either the pending or accepted state.
+
+    Directional: requester_id sent the request to addressee_id. A pair of
+    users has at most one row between them regardless of status - accepting
+    flips status in place rather than creating a second row, and removing a
+    friendship (unfriending, declining, or cancelling a sent request) simply
+    deletes the row.
+    """
+
+    __tablename__ = "friendships"
+
+    id = Column(Integer, primary_key=True, index=True)
+    requester_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    addressee_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status = Column(String, nullable=False, default="pending")  # "pending" | "accepted"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    responded_at = Column(DateTime(timezone=True), nullable=True)

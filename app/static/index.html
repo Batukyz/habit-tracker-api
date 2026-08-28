@@ -602,6 +602,18 @@
       <div id="archived-list"></div>
       <div class="empty" id="archived-empty-state" style="display:none">Arşivlenmiş habit yok.</div>
     </div>
+
+    <div class="card">
+      <div class="section-title">🤝 Arkadaşlar</div>
+      <form id="add-friend-form" class="row">
+        <input type="email" id="add-friend-email" placeholder="Arkadaşının e-postası" required>
+        <button type="submit" class="btn-primary" style="width:auto; white-space:nowrap; flex:none;">İstek gönder</button>
+      </form>
+      <div class="error" id="add-friend-error"></div>
+      <div id="friend-requests-list"></div>
+      <div id="friends-list"></div>
+      <div class="empty" id="friends-empty" style="display:none">Henüz arkadaşın yok.</div>
+    </div>
     </div>
    </div>
   </div>
@@ -1285,6 +1297,86 @@ window.addEventListener("resize", () => {
   if (canvas && canvas.clientWidth > 0) renderEcosystemTree(canvas, ecosystemGrowthLevel);
 });
 
+// --- friends ---
+async function loadFriendRequests() {
+  const response = await apiFetch("/friends/requests/incoming");
+  const requests = await response.json();
+  const list = document.getElementById("friend-requests-list");
+  list.innerHTML = "";
+  for (const req of requests) {
+    const row = document.createElement("div");
+    row.className = "event-row";
+    row.innerHTML = `
+      <div>
+        <div class="habit-title">${escapeHtml(req.requester_email)}</div>
+        <div class="habit-meta">Arkadaşlık isteği gönderdi</div>
+      </div>
+      <div class="actions">
+        <button class="btn-check btn-small">Kabul et</button>
+        <button class="btn-archive btn-small">Reddet</button>
+      </div>
+    `;
+    row.querySelector(".btn-check").addEventListener("click", async () => {
+      await apiFetch(`/friends/requests/${req.requester_id}/accept`, { method: "POST" });
+      loadFriendRequests();
+      loadFriends();
+    });
+    row.querySelector(".btn-archive").addEventListener("click", async () => {
+      await apiFetch(`/friends/${req.requester_id}`, { method: "DELETE" });
+      loadFriendRequests();
+    });
+    list.appendChild(row);
+  }
+}
+
+async function loadFriends() {
+  loadFriendRequests();
+  const response = await apiFetch("/friends");
+  const friends = await response.json();
+  const list = document.getElementById("friends-list");
+  const empty = document.getElementById("friends-empty");
+  list.innerHTML = "";
+  empty.style.display = friends.length ? "none" : "block";
+  for (const friend of friends) {
+    const row = document.createElement("div");
+    row.className = "event-row";
+    row.innerHTML = `
+      <div>
+        <div class="habit-title">${escapeHtml(friend.email)}</div>
+        <div class="habit-meta">
+          <span class="streak">🔥 ${friend.best_current_streak} gün</span> · ${friend.active_habits} aktif habit
+        </div>
+      </div>
+      <button class="btn-archive btn-small">Kaldır</button>
+    `;
+    row.querySelector(".btn-archive").addEventListener("click", async () => {
+      if (!confirm(`"${friend.email}" arkadaş listenden kaldırılsın mı?`)) return;
+      await apiFetch(`/friends/${friend.user_id}`, { method: "DELETE" });
+      loadFriends();
+    });
+    list.appendChild(row);
+  }
+}
+
+document.getElementById("add-friend-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const emailInput = document.getElementById("add-friend-email");
+  const errorEl = document.getElementById("add-friend-error");
+  errorEl.textContent = "";
+  const response = await apiFetch("/friends/requests", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: emailInput.value }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    errorEl.textContent = err.detail || "İstek gönderilemedi.";
+    return;
+  }
+  emailInput.value = "";
+  loadFriendRequests();
+});
+
 const CATEGORY_ICONS = {
   "Sağlık": "🩺",
   "Spor & Fitness": "💪",
@@ -1447,6 +1539,7 @@ function showApp() {
   loadUpcomingEvents();
   loadOverview();
   loadEcosystem();
+  loadFriends();
 }
 
 async function loadOverview() {

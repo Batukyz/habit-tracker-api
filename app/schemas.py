@@ -210,3 +210,22 @@ class AdminUserSummaryOut(BaseModel):
 
 class EcosystemOverrideIn(BaseModel):
     simulated_streak: int = Field(ge=0)
+
+
+class FriendRequestCreate(BaseModel):
+    email: str
+
+
+class FriendRequestOut(BaseModel):
+    id: int
+    requester_id: int
+    requester_email: str
+    created_at: datetime
+
+
+class FriendOut(BaseModel):
+    user_id: int
+    email: str
+    best_current_streak: int
+    best_longest_streak: int
+    active_habits: int

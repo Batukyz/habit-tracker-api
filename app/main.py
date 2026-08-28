@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from typing import Optional
@@ -9,6 +9,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from . import models, schemas
@@ -794,3 +795,142 @@ def admin_clear_user_ecosystem_override(
     inputs = _compute_user_ecosystem_input(db, user_id)
     state = compute_ecosystem_state(inputs, _get_milestones(db))
     return _ecosystem_state_to_schema(state, is_simulated=False)
+
+
+# --- Friends: send/accept/decline requests, and a streak leaderboard. A
+# single row per pair (Friendship) covers both the pending and accepted
+# states; removing a friendship (unfriend, decline, or cancel a sent
+# request) is always the same delete.
+
+
+def _get_friendship_between(db: Session, user_a_id: int, user_b_id: int) -> models.Friendship | None:
+    return (
+        db.query(models.Friendship)
+        .filter(
+            or_(
+                and_(models.Friendship.requester_id == user_a_id, models.Friendship.addressee_id == user_b_id),
+                and_(models.Friendship.requester_id == user_b_id, models.Friendship.addressee_id == user_a_id),
+            )
+        )
+        .first()
+    )
+
+
+@app.post("/friends/requests", response_model=schemas.FriendRequestOut, status_code=201)
+def send_friend_request(
+    payload: schemas.FriendRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    target = db.query(models.User).filter(models.User.email == payload.email).first()
+    if target is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if target.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Kendine istek gönderemezsin")
+    if _get_friendship_between(db, current_user.id, target.id) is not None:
+        raise HTTPException(status_code=409, detail="Zaten bir istek veya arkadaşlık var")
+
+    row = models.Friendship(requester_id=current_user.id, addressee_id=target.id, status="pending")
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return schemas.FriendRequestOut(
+        id=row.id, requester_id=row.requester_id, requester_email=current_user.email, created_at=row.created_at
+    )
+
+
+@app.get("/friends/requests/incoming", response_model=list[schemas.FriendRequestOut])
+def list_incoming_friend_requests(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    rows = (
+        db.query(models.Friendship)
+        .filter(models.Friendship.addressee_id == current_user.id, models.Friendship.status == "pending")
+        .all()
+    )
+    out = []
+    for row in rows:
+        requester = db.query(models.User).filter(models.User.id == row.requester_id).first()
+        out.append(
+            schemas.FriendRequestOut(
+                id=row.id, requester_id=row.requester_id, requester_email=requester.email, created_at=row.created_at
+            )
+        )
+    return out
+
+
+@app.post("/friends/requests/{other_user_id}/accept", response_model=schemas.FriendOut)
+def accept_friend_request(
+    other_user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    row = (
+        db.query(models.Friendship)
+        .filter(
+            models.Friendship.requester_id == other_user_id,
+            models.Friendship.addressee_id == current_user.id,
+            models.Friendship.status == "pending",
+        )
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Bekleyen istek bulunamadı")
+    row.status = "accepted"
+    row.responded_at = datetime.utcnow()
+    db.commit()
+
+    friend = db.query(models.User).filter(models.User.id == other_user_id).first()
+    inputs = _compute_user_ecosystem_input(db, other_user_id)
+    return schemas.FriendOut(
+        user_id=friend.id,
+        email=friend.email,
+        best_current_streak=inputs.best_current_streak,
+        best_longest_streak=inputs.best_longest_streak,
+        active_habits=inputs.total_habits,
+    )
+
+
+@app.delete("/friends/{other_user_id}", status_code=204)
+def remove_friendship(
+    other_user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    row = _get_friendship_between(db, current_user.id, other_user_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="İlişki bulunamadı")
+    db.delete(row)
+    db.commit()
+
+
+@app.get("/friends", response_model=list[schemas.FriendOut])
+def list_friends(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    rows = (
+        db.query(models.Friendship)
+        .filter(
+            or_(models.Friendship.requester_id == current_user.id, models.Friendship.addressee_id == current_user.id),
+            models.Friendship.status == "accepted",
+        )
+        .all()
+    )
+    friends = []
+    for row in rows:
+        friend_id = row.addressee_id if row.requester_id == current_user.id else row.requester_id
+        friend = db.query(models.User).filter(models.User.id == friend_id).first()
+        inputs = _compute_user_ecosystem_input(db, friend_id)
+        friends.append(
+            schemas.FriendOut(
+                user_id=friend.id,
+                email=friend.email,
+                best_current_streak=inputs.best_current_streak,
+                best_longest_streak=inputs.best_longest_streak,
+                active_habits=inputs.total_habits,
+            )
+        )
+    friends.sort(key=lambda f: f.best_current_streak, reverse=True)
+    return friends
