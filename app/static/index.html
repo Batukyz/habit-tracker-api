@@ -1331,31 +1331,51 @@ async function loadFriendRequests() {
 
 async function loadFriends() {
   loadFriendRequests();
-  const response = await apiFetch("/friends");
-  const friends = await response.json();
+  const [friendsRes, overviewRes] = await Promise.all([
+    apiFetch("/friends"),
+    apiFetch("/overview"),
+  ]);
+  const friends = await friendsRes.json();
+  const overview = await overviewRes.json();
+
   const list = document.getElementById("friends-list");
   const empty = document.getElementById("friends-empty");
   list.innerHTML = "";
   empty.style.display = friends.length ? "none" : "block";
-  for (const friend of friends) {
+  if (friends.length === 0) return;
+
+  // Rank "you" alongside your friends by the same streak field, so this
+  // reads as a real comparison rather than just a contact list.
+  const ranked = [
+    { isMe: true, email: "Sen", best_current_streak: overview.best_current_streak, active_habits: overview.active_habits },
+    ...friends.map((f) => ({ isMe: false, ...f })),
+  ].sort((a, b) => b.best_current_streak - a.best_current_streak);
+
+  ranked.forEach((entry, index) => {
     const row = document.createElement("div");
     row.className = "event-row";
+    if (entry.isMe) row.style.background = "var(--input-bg)";
     row.innerHTML = `
-      <div>
-        <div class="habit-title">${escapeHtml(friend.email)}</div>
-        <div class="habit-meta">
-          <span class="streak">🔥 ${friend.best_current_streak} gün</span> · ${friend.active_habits} aktif habit
+      <div class="row" style="align-items:center; gap:10px;">
+        <div class="streak" style="flex:none; width:20px; text-align:center;">${index + 1}</div>
+        <div>
+          <div class="habit-title">${entry.isMe ? "Sen" : escapeHtml(entry.email)}</div>
+          <div class="habit-meta">
+            <span class="streak">🔥 ${entry.best_current_streak} gün</span> · ${entry.active_habits} aktif habit
+          </div>
         </div>
       </div>
-      <button class="btn-archive btn-small">Kaldır</button>
+      ${entry.isMe ? "" : '<button class="btn-archive btn-small">Kaldır</button>'}
     `;
-    row.querySelector(".btn-archive").addEventListener("click", async () => {
-      if (!confirm(`"${friend.email}" arkadaş listenden kaldırılsın mı?`)) return;
-      await apiFetch(`/friends/${friend.user_id}`, { method: "DELETE" });
-      loadFriends();
-    });
+    if (!entry.isMe) {
+      row.querySelector(".btn-archive").addEventListener("click", async () => {
+        if (!confirm(`"${entry.email}" arkadaş listenden kaldırılsın mı?`)) return;
+        await apiFetch(`/friends/${entry.user_id}`, { method: "DELETE" });
+        loadFriends();
+      });
+    }
     list.appendChild(row);
-  }
+  });
 }
 
 document.getElementById("add-friend-form").addEventListener("submit", async (e) => {
